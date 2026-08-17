@@ -6,10 +6,13 @@
  *   dsh plugin --profile web add ./dsh-pet-plugin-<version>.tgz
  *
  * 用法（零依赖，只需要 node）：
- *   node scripts/pack.mjs              # 全流程，产物落在 dist/
+ *   node scripts/pack.mjs              # 打本包，产物落在仓库顶层 ./dist
  *   node scripts/pack.mjs --check      # 只校验，不打包
- *   node scripts/pack.mjs --out build  # 换输出目录
+ *   node scripts/pack.mjs 别的包目录     # 换要打的包（相对当前工作目录）
+ *   node scripts/pack.mjs --out build  # 换输出目录（相对仓库顶层）
  *   node scripts/pack.mjs --packer npm # 强制用 npm pack（默认 pnpm，失败自动退回 npm）
+ *
+ * 仓库顶层的 pack.mjs 是这支脚本的一层转发，`node pack.mjs` 等价。
  */
 import { spawnSync } from 'node:child_process'
 import { gunzipSync } from 'node:zlib'
@@ -17,7 +20,11 @@ import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync } from 'node:f
 import { dirname, join, resolve } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
-const root = resolve(dirname(fileURLToPath(import.meta.url)), '..')
+const here = dirname(fileURLToPath(import.meta.url))
+/** 脚本住在包里的 scripts/ 下，包根就是它的上一级。 */
+const packageRoot = resolve(here, '..')
+/** 产物默认落在仓库顶层，而不是包内（包内的东西都会被 files 清单审一遍）。 */
+const repoRoot = resolve(here, '..', '..')
 
 /**
  * 平台模块白名单 —— 浏览器产物只允许 require 这些。
@@ -38,12 +45,7 @@ const PLATFORM_MODULES = new Set([
   '@deepseek-ai/dsh-client-runtime/client',
 ])
 
-/**
- * 必须出现在 tarball 里的文件（相对包根）。
- *
- * 不含 README.md：使用说明在仓库根的 README.md、插件详解在 plugin.md，
- * 两份都不在包根，npm 自然不会带上，也没必要为了打包再复制一份进来。
- */
+/** 必须出现在 tarball 里的文件（相对包根）。 */
 const REQUIRED_IN_TARBALL = ['package.json', 'index.js', 'lib/client.js', 'cordis.patch.yml']
 
 /** 绝不该被打进 tarball 的路径前缀（开发件）。 */
@@ -63,8 +65,18 @@ function option(flag, fallback) {
 }
 
 const checkOnly = args.includes('--check')
-const outDir = resolve(root, option('--out', 'dist'))
+const outDir = resolve(repoRoot, option('--out', 'dist'))
 const forcedPacker = option('--packer', '')
+// 第一个不带 -- 前缀、且不是某个 --flag 的取值的位置参数，就是包目录。
+const flagValues = new Set(['--out', '--packer'].map(flag => option(flag, null)).filter(v => v !== null))
+const positional = args.find(arg => !arg.startsWith('-') && !flagValues.has(arg))
+const root = positional === undefined ? packageRoot : resolve(process.cwd(), positional)
+
+if (!existsSync(join(root, 'package.json'))) {
+  console.error(`✗ ${root} 下没有 package.json —— 这不是一个包目录`)
+  process.exit(1)
+}
+console.log(`打包 ${root}`)
 
 const problems = []
 const notes = []
@@ -88,9 +100,7 @@ function expect(condition, message) {
 
 // ---------------------------------------------------------------- 1. 清单
 
-const pkgPath = join(root, 'package.json')
-expect(existsSync(pkgPath), 'package.json 不存在')
-const pkg = JSON.parse(readFileSync(pkgPath, 'utf8'))
+const pkg = JSON.parse(readFileSync(join(root, 'package.json'), 'utf8'))
 
 expect(typeof pkg.name === 'string' && pkg.name.length > 0, 'package.json 缺 name')
 expect(/^\d+\.\d+\.\d+(?:[-+].+)?$/.test(String(pkg.version)), `version 不是 semver: ${String(pkg.version)}`)
@@ -124,7 +134,7 @@ expect(
 )
 expect(typeof exportsField['.'] === 'string' || exportsField['.']?.default !== undefined, 'exports["."] 缺失（host 半入口）')
 
-// files：npm 自动带上 package.json/README，其余必须显式列出。
+// files：npm 自动带上 package.json / README，其余必须显式列出且真的存在。
 const files = Array.isArray(pkg.files) ? pkg.files : []
 for (const needed of ['index.js', 'lib/client.js', 'cordis.patch.yml']) {
   expect(files.includes(needed), `package.json files 里缺 ${needed} —— 它不会被打进 tarball`)
@@ -236,7 +246,7 @@ if (packed === undefined) {
 }
 
 const tarballs = readdirSync(outDir).filter(name => name.endsWith('.tgz'))
-expect(tarballs.length === 1, `dist 里应当只有一个 tarball，实际 ${tarballs.length} 个`)
+expect(tarballs.length === 1, `输出目录里应当只有一个 tarball，实际 ${tarballs.length} 个`)
 report('打包')
 const tarball = join(outDir, tarballs[0])
 
@@ -319,7 +329,7 @@ console.log(`
 
   dsh plugin --profile web add ${tarball.replace(/\\/g, '/')}
   dsh --profile web --dump-config      # 应当看到 "# == ${pkg.name}" 这一层
-  dsh web
+  dsh web                              # 装完 / 卸完必须重启
 `)
 
 /**

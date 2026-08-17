@@ -1,42 +1,53 @@
-# dsh-pet-plugin — 宠物自动喂食插件
+<div align="center">
 
-给 DeepSeek Harness (`dsh`) 的 Web 界面挂一只**桌宠**：宠物是 DeepSeek 的鲸鱼，二次元 Q 版画法——圆身子、大高光眼、腮红、头顶喷水柱，平时浮沉摆尾，你干活它就吃东西。
+<img src="docs/whale.png" width="150" alt="深深">
 
-你和 Agent 交互的每一步都会喂它一次：**你发消息**（🥕）、**模型回一次**（🐟）、**工具跑完一次**（🍖）。事件越密（尤其是工具循环），Combo 越高、倍率越大、特效越夸张——1~3 级白字，4~6 级金字加震动，7~10 级彩虹渐变加光环脉冲，这时候鲸鱼会变星星眼。
+# deepseek-pet
 
-**这是一个 out-of-tree 插件包：安装它不需要修改 dsh 仓库的任何一个字节，也不需要重新构建 Web 前端。**
+**在 DeepSeek Harness 的 Web 界面里，养一只二次元小鲸鱼。**
 
-> 插件内部怎么实现的（接入方式、事件来源、计算规则、鲸鱼画法、打包校验、已知限制）看 [`dsh-pet-plugin/plugin.md`](dsh-pet-plugin/plugin.md)；策划原文是 [`pet-auto-feed-plugin-design.md`](pet-auto-feed-plugin-design.md)。
+[![license](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+![deps](https://img.shields.io/badge/dependencies-0-brightgreen.svg)
+![build](https://img.shields.io/badge/build-none-lightgrey.svg)
+
+你和 Agent 干活的每一步，它都在右下角吃东西 —— 你发消息喂 🥕、模型回一句喂 🐟、工具跑完一次喂 🍖。
+工具循环越密，Combo 越高，特效越夸张，鲸鱼会变**星星眼**。
+
+<img src="docs/preview.png" width="720" alt="三档形态：平时 / 连击 / 星星眼">
+
+装它不用改 dsh 仓库的一个字节，也不用重新构建前端。
+
+</div>
 
 ---
 
-## 安装
+## 为什么好玩
 
-从 dsh 源码仓库运行，所有命令都走 `pnpm dsh`。把 `dsh-pet-plugin` 目录放在 **dsh 仓库根目录**下，在仓库根执行：
+- 🐳 **DeepSeek 的鲸鱼，二次元 Q 版**：圆身子、大高光眼、腮红、头顶喷水柱；平时浮沉摆尾、5 秒眨一次眼，喂食时张嘴脸红。整只鲸鱼是**内联 SVG**，不加载任何图片资源。
+- ⚡ **Agent 干得越猛，它吃得越爽**：连击 1~3 白字，4~6 金字加震动，7~10 彩虹渐变 + 光环脉冲 + 星星眼，倍率最高 3.0x。
+- 🎯 **食物从事件真实发生的位置飞过来**：从你刚发的那条消息、刚跑完的那个工具，一路飞到鲸鱼嘴边，而全程只是一条 CSS 动画。
+- 🔌 **零侵入、零构建**：out-of-tree 插件包，一条 `plugin add` 装完即用，不需要 tsdown、不需要联网、不需要 pnpm 的 `allowBuilds` 授权。
+- 🧪 **零依赖自测**：`node test/smoke.mjs` 用桩件把产物真跑一遍，连"飞行位移算得对不对""鲸鱼部件齐不齐"都断言。
+
+---
+
+## 30 秒装上
+
+把 `dsh-pet-plugin` 目录放到 **dsh 仓库根目录**下，在仓库根执行：
 
 ```sh
-pnpm dsh plugin --profile web add ./dsh-pet-plugin
+pnpm dsh plugin --profile web add ./dsh-pet-plugin   # 装
+pnpm dsh --profile web --dump-config                 # 确认（应看到 "# == dsh-pet-plugin" 和 pet-feed）
+pnpm dsh web                                         # 起 Web
 ```
 
-`web` profile 首次使用会自动从模板初始化（base + web-app）。也可以装一个 tarball（别人分发给你的，见 [打包分发](#打包分发)）：
+打开页面随便说句话 —— 鲸鱼就在右下角开始吃东西了。
+
+装别人给你的 tarball 也一样（见 [打包分发](#打包分发)）：
 
 ```sh
 pnpm dsh plugin --profile web add ./dsh-pet-plugin-0.1.0.tgz
 ```
-
-确认这一层进来了（应当能看到 `# == dsh-pet-plugin` 这一层和 `pet-feed` 这一行）：
-
-```sh
-pnpm dsh --profile web --dump-config
-```
-
-然后启动 Web：
-
-```sh
-pnpm dsh web
-```
-
-装完 / 卸完都要**重启 dsh** 才生效。
 
 卸载：
 
@@ -44,25 +55,25 @@ pnpm dsh web
 pnpm dsh plugin --profile web remove dsh-pet-plugin
 ```
 
-> 如果你用的是全局安装的 `dsh`，把上面每条命令的 `pnpm dsh` 换成 `dsh` 即可，参数完全一样。
+> - 装完 / 卸完都要**重启 dsh** 才生效。
+> - `web` profile 首次使用会自动从模板初始化（base + web-app）。
+> - 用全局安装的 `dsh` 的话，把每条命令的 `pnpm dsh` 换成 `dsh`，参数完全一样。
 
 ---
 
-## 用起来
+## 玩法
 
-打开页面，随便说句话——鲸鱼应该在右下角开始吃东西。
-
-- 食物会**从会话里事件实际发生的位置飞过来**落到鲸鱼嘴边，跟着冒 `+N 🐟 +N ⭐` 的飘字。
-- 连续动作会攒 Combo：徽标从白字 → 金字（震动）→ 彩虹（强震 + 光环），鲸鱼在最高档换星星眼。
-- 卡片上两条进度条：橙色是饱食度，蓝色是当前等级的经验。
-- **点一下卡片**折叠成只剩头像，再点展开。鼠标悬停能看到心情 / 精力 / 累计喂食次数。
-- 系统开了「减少动效」时所有动画自动关闭。
+- 食物从会话里事件发生的位置**飞过来**落到鲸鱼嘴边，跟着冒 `+N 🐟 +N ⭐` 的飘字。
+- 连续动作攒 Combo：白字 → 金字（震动）→ 彩虹（强震 + 光环），最高档鲸鱼换**星星眼 + O 型嘴**。
+- 卡片上两条进度条：橙色是饱食度，蓝色是当前等级的经验；攒够 `等级 × 100` 经验就升级。
+- **点一下卡片**折叠成只剩头像，再点展开；鼠标悬停看心情 / 精力 / 累计喂食次数。
+- 系统开了「减少动效」时，所有动画自动关闭。
 
 ---
 
 ## 调参
 
-浏览器侧的配置走 `localStorage`（profile 的 `cordis.patch.yml` 改不到这一半，原因见 [`plugin.md`](dsh-pet-plugin/plugin.md)）。在页面控制台里执行，**刷新生效**：
+宠物名字、连击窗口、食物量、要不要特效……都能改。浏览器侧配置走 `localStorage`，在页面控制台执行后**刷新生效**：
 
 ```js
 localStorage.setItem('dsh-pet-plugin/config', JSON.stringify({
@@ -81,17 +92,18 @@ localStorage.setItem('dsh-pet-plugin/config', JSON.stringify({
 }))
 ```
 
-- 只写想改的字段就行，其余用默认值。
-- 类型不匹配的字段会被静默忽略；非法 JSON 会在 console 警告一次并整体回退默认值。
+- 只写想改的字段，其余用默认值；类型不匹配的字段静默忽略，非法 JSON 警告一次并整体回退默认值。
 - `enabled: false` 直接关掉整个插件（既不观察事件也不显示浮层）。
+- 为什么不能改 profile 的 yml：见 [`plugin.md`](dsh-pet-plugin/plugin.md)。
 
 ---
 
 ## 打包分发
 
 ```sh
-cd dsh-pet-plugin
-node scripts/pack.mjs          # 或 npm run pack
+node pack.mjs                        # 在本目录执行
+# 等价写法（实现就在包里）：
+cd dsh-pet-plugin && node scripts/pack.mjs
 ```
 
 产物落在 `dist/dsh-pet-plugin-<version>.tgz`，发给别人一条 `pnpm dsh plugin add` 装完即用，不需要构建、不需要联网。打包前会自动跑一遍清单校验、产物校验和冒烟测试，校验项细节见 [`plugin.md`](dsh-pet-plugin/plugin.md)。
@@ -102,3 +114,27 @@ node scripts/pack.mjs          # 或 npm run pack
 cd dsh-pet-plugin
 node test/smoke.mjs
 ```
+
+---
+
+## 项目结构
+
+```
+deepseek-pet/
+├── dsh-pet-plugin/                  插件包本体（这一整个目录就是分发单位）
+│   ├── index.js                     host 半：空实现，只为成为一条活着的 Loader entry
+│   ├── lib/client.js                浏览器半：手写产物，宠物 / Combo / 特效 / 鲸鱼 SVG 都在这里
+│   ├── cordis.patch.yml             配置层：往 profile 里插一行 Loader 记录
+│   ├── test/smoke.mjs               零依赖冒烟测试
+│   └── plugin.md                    插件详解
+├── pet-auto-feed-plugin-design.md   策划原文
+└── docs/                            README 用的效果图
+```
+
+它是怎么在不改宿主仓库的前提下接上去的、事件从哪来、Combo 怎么算、鲸鱼怎么画的、哪些地方偏离了策划 —— 都在 [`dsh-pet-plugin/plugin.md`](dsh-pet-plugin/plugin.md)。
+
+---
+
+## License
+
+[MIT](LICENSE) © zhailiming
