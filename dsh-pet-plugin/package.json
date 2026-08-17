@@ -19,8 +19,7 @@
   "files": [
     "index.js",
     "lib/client.js",
-    "cordis.patch.yml",
-    "README.md"
+    "cordis.patch.yml"
   ],
   "dsh": {
     "bundle": {

@@ -145,7 +145,7 @@ node scripts/pack.mjs          # 或 npm run pack
 3. **产物格式**：`node --check` 过语法；`window.__ModuleLoader__.load(` / `var module = { exports: {} }` / `return module.exports` / `exports.apply =` 四件套齐备；产物里的 `id` 等于包名。
 4. **产物纯净度**：扫出所有 `require("…")` 的目标，逐个比对 `PLATFORM_MODULES` 白名单。浏览器模块表里只有那十来个平台模块，require 到别的东西必然在运行时 resolve 失败——这一条是最容易在开发时不小心破坏的。
 5. **冒烟测试**：跑一遍 `test/smoke.mjs`。
-6. **复核 tarball**：脚本自己解开 `.tgz`（`zlib` + 手写 tar 头解析，零依赖），确认里面正好是 `files` 允许的那五个文件、没有 `test/` `scripts/` `dist/` `node_modules/`、`lib/client.js` 与本地校验过的那份逐字节相同、解压出来的 `package.json` 仍带着两个 `dsh` manifest。
+6. **复核 tarball**：脚本自己解开 `.tgz`（`zlib` + 手写 tar 头解析，零依赖），确认里面正好是 `files` 允许的那四个文件（`package.json` / `index.js` / `lib/client.js` / `cordis.patch.yml`——文档不在包根，不进 tarball）、没有 `test/` `scripts/` `dist/` `node_modules/`、`lib/client.js` 与本地校验过的那份逐字节相同、解压出来的 `package.json` 仍带着两个 `dsh` manifest。
 
 其他用法：
 

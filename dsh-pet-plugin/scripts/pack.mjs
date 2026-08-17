@@ -38,8 +38,13 @@ const PLATFORM_MODULES = new Set([
   '@deepseek-ai/dsh-client-runtime/client',
 ])
 
-/** 必须出现在 tarball 里的文件（相对包根）。 */
-const REQUIRED_IN_TARBALL = ['package.json', 'index.js', 'lib/client.js', 'cordis.patch.yml', 'README.md']
+/**
+ * 必须出现在 tarball 里的文件（相对包根）。
+ *
+ * 不含 README.md：使用说明在仓库根的 README.md、插件详解在 plugin.md，
+ * 两份都不在包根，npm 自然不会带上，也没必要为了打包再复制一份进来。
+ */
+const REQUIRED_IN_TARBALL = ['package.json', 'index.js', 'lib/client.js', 'cordis.patch.yml']
 
 /** 绝不该被打进 tarball 的路径前缀（开发件）。 */
 const FORBIDDEN_PREFIXES = ['test/', 'scripts/', 'node_modules/', 'dist/']
