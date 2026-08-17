@@ -12,39 +12,39 @@
 
 ## 安装
 
-`web` profile 首次使用会自动从模板初始化（base + web-app）。装源码目录，在**包含 `dsh-pet-plugin` 目录的上级目录**里执行：
+从 dsh 源码仓库运行，所有命令都走 `pnpm dsh`。把 `dsh-pet-plugin` 目录放在 **dsh 仓库根目录**下，在仓库根执行：
 
 ```sh
-dsh plugin --profile web add ./dsh-pet-plugin
+pnpm dsh plugin --profile web add ./dsh-pet-plugin
 ```
 
-或者装一个 tarball（别人分发给你的，见 [打包分发](#打包分发)）：
+`web` profile 首次使用会自动从模板初始化（base + web-app）。也可以装一个 tarball（别人分发给你的，见 [打包分发](#打包分发)）：
 
 ```sh
-dsh plugin --profile web add ./dsh-pet-plugin-0.1.0.tgz
+pnpm dsh plugin --profile web add ./dsh-pet-plugin-0.1.0.tgz
 ```
 
 确认这一层进来了（应当能看到 `# == dsh-pet-plugin` 这一层和 `pet-feed` 这一行）：
 
 ```sh
-dsh --profile web --dump-config
+pnpm dsh --profile web --dump-config
 ```
 
 然后启动 Web：
 
 ```sh
-dsh web
+pnpm dsh web
 ```
 
-> 从源码仓库运行时，把这个目录放在 dsh 仓库根目录下，命令写成 `pnpm dsh plugin --profile web add ./dsh-pet-plugin`。
-
-装完 / 卸完都要**重启 `dsh`** 才生效。
+装完 / 卸完都要**重启 dsh** 才生效。
 
 卸载：
 
 ```sh
-dsh plugin --profile web remove dsh-pet-plugin
+pnpm dsh plugin --profile web remove dsh-pet-plugin
 ```
+
+> 如果你用的是全局安装的 `dsh`，把上面每条命令的 `pnpm dsh` 换成 `dsh` 即可，参数完全一样。
 
 ---
 
@@ -94,7 +94,7 @@ cd dsh-pet-plugin
 node scripts/pack.mjs          # 或 npm run pack
 ```
 
-产物落在 `dist/dsh-pet-plugin-<version>.tgz`，发给别人一条 `dsh plugin add` 装完即用，不需要构建、不需要联网。打包前会自动跑一遍清单校验、产物校验和冒烟测试，校验项细节见 [`plugin.md`](dsh-pet-plugin/plugin.md)。
+产物落在 `dist/dsh-pet-plugin-<version>.tgz`，发给别人一条 `pnpm dsh plugin add` 装完即用，不需要构建、不需要联网。打包前会自动跑一遍清单校验、产物校验和冒烟测试，校验项细节见 [`plugin.md`](dsh-pet-plugin/plugin.md)。
 
 自测（不需要装任何依赖）：
 

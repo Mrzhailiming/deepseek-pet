@@ -134,6 +134,10 @@ for (const listed of files) {
   if (FORBIDDEN_PREFIXES.some(prefix => listed.startsWith(prefix))) {
     fail(`package.json files 里列了开发件: ${listed}`)
   }
+  // 通配符交给 npm 展开，只校验字面路径。
+  if (!/[*?[\]{}]/.test(listed)) {
+    expect(existsSync(resolve(root, listed)), `package.json files 里列了不存在的文件: ${listed}`)
+  }
 }
 
 // ------------------------------------------------- 2. cordis.patch.yml
@@ -280,9 +284,13 @@ const inside = new Map(entries.map(entry => [entry.name.replace(/^package\//, ''
 for (const needed of REQUIRED_IN_TARBALL) {
   expect(inside.has(needed), `tarball 里缺 ${needed}`)
 }
+// 反过来也查一遍：tarball 里不该出现 files 没允许的东西。
+const allowed = new Set([...files, 'package.json', 'README.md', 'LICENSE'])
 for (const name of inside.keys()) {
   if (FORBIDDEN_PREFIXES.some(prefix => name.startsWith(prefix))) {
     fail(`tarball 里混进了开发件: ${name}`)
+  } else if (!allowed.has(name)) {
+    fail(`tarball 里有 files 清单之外的文件: ${name}`)
   }
 }
 // 装出去的产物必须与本地校验过的那一份逐字节相同。
