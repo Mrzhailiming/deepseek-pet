@@ -88,6 +88,8 @@ assert.ok(registered !== null, 'Definition 应当已注册')
 assert.ok(overlay !== null, 'overlay 应当已注册进 shell.overlay')
 assert.equal(overlay.options.id, 'pet')
 assert.equal(styleTags.length, 1, '样式应当注入且只注入一次')
+/** 注入的样式表原文；用来核对渲染树里的部件都有对应规则。 */
+const CSS_TEXT = styleTags[0].textContent
 
 // ---- 驱动事件 ------------------------------------------------------------
 
@@ -230,6 +232,35 @@ assert.ok(food !== null, '应当渲染出食物元素')
 assert.equal(food.props['data-flight'], 'across')
 assert.match(food.props.style['--dshpet-dx'], /^-\d+px$/)
 assert.equal(food.props.style['--dshpet-dy'], '-75px')
+
+// 头像是内联 SVG 的二次元鲸鱼；epic 连击时换星星眼 + 闪光。
+const avatar = findNode(tree, n => n.props?.className === 'dshpet-avatar')
+assert.ok(avatar !== null, '头像应当在渲染树里')
+const whaleEl = findNode(avatar, n => typeof n.type === 'function')
+assert.ok(whaleEl !== null, 'petAvatar=whale 时头像里应当是组件而不是 emoji')
+assert.equal(whaleEl.props.tier, 'epic', '此刻应当是 epic 连击')
+const whale = whaleEl.type(whaleEl.props)
+assert.equal(whale.type, 'svg')
+assert.equal(whale.props.className, 'dshpet-whale')
+for (const cls of ['dshpet-whale-body', 'dshpet-whale-tail', 'dshpet-whale-fin',
+  'dshpet-whale-eyes', 'dshpet-whale-mouth', 'dshpet-whale-blush', 'dshpet-whale-spout']) {
+  assert.ok(findNode(whale, n => n.props?.className === cls) !== null, `缺部件: ${cls}`)
+  assert.ok(CSS_TEXT.includes('.' + cls), `${cls} 没有对应样式`)
+}
+assert.ok(
+  findNode(whale, n => n.props?.className === 'dshpet-whale-sparkle') !== null,
+  'epic 时应当有闪光',
+)
+const calmWhale = whaleEl.type({ tier: 'normal' })
+assert.equal(
+  findNode(calmWhale, n => n.props?.className === 'dshpet-whale-sparkle'), null,
+  'normal 时不应当有闪光',
+)
+assert.notEqual(
+  findNode(calmWhale, n => n.props?.className === 'dshpet-whale-mouth').props.d,
+  findNode(whale, n => n.props?.className === 'dshpet-whale-mouth').props.d,
+  'epic 的嘴型应当和平时不同',
+)
 
 // 没有会话打开（量不到锚点）时退回策划原本的就地飞入，而不是飞到屏幕外。
 anchors = null

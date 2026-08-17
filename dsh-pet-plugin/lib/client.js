@@ -44,10 +44,12 @@ window.__ModuleLoader__.load({
       flyFromConversation: true,
       // 本实现补充：只喂「刚发生」的事件，避免翻历史 / 重放时被历史日志刷屏
       freshnessMs: 30000,
-      // 宠物外观
-      petName: "豆豆",
-      petSpecies: "毛球",
-      petIcon: "🐣"
+      // 宠物外观：DeepSeek 二次元小鲸
+      petName: "深深",
+      petSpecies: "深海小鲸",
+      // "whale" 用内联 SVG 画二次元鲸鱼；"emoji" 退回 petIcon 那个字形
+      petAvatar: "whale",
+      petIcon: "🐳"
     };
 
     /** localStorage 覆盖键：浏览器侧唯一的调参接缝（cordis config 到不了这一半）。 */
@@ -127,6 +129,23 @@ window.__ModuleLoader__.load({
 
       ".dshpet-avatar{position:relative;font-size:30px;line-height:1}",
       ".dshpet-eating{animation:dshpet-eat-bounce 400ms ease-out}",
+
+      /* 二次元鲸鱼：整只鲸是一张 44px 的内联 SVG，各部件靠 CSS 各自呼吸。
+         SVG 里一律用 transform-box:fill-box + transform-origin:center，
+         否则 transform 的原点是 viewBox 原点而不是部件自己。 */
+      ".dshpet-whale{display:block;width:44px;height:44px;overflow:visible}",
+      ".dshpet-whale *{transform-box:fill-box;transform-origin:center}",
+      ".dshpet-whale-body{animation:dshpet-whale-bob 3.2s ease-in-out infinite}",
+      ".dshpet-whale-tail{animation:dshpet-whale-wag 1.6s ease-in-out infinite;",
+      "transform-origin:left center}",
+      ".dshpet-whale-fin{animation:dshpet-whale-fin 2.4s ease-in-out infinite;",
+      "transform-origin:top center}",
+      ".dshpet-whale-eyes{animation:dshpet-whale-blink 5.2s ease-in-out infinite}",
+      ".dshpet-whale-spout{animation:dshpet-whale-spout 2.6s ease-out infinite}",
+      ".dshpet-whale-sparkle{animation:dshpet-whale-sparkle 1.1s ease-in-out infinite}",
+      /* 进食那一刻：卡片给头像挂 .dshpet-eating，顺带让嘴张一下、腮红烧一下。 */
+      ".dshpet-eating .dshpet-whale-mouth{animation:dshpet-whale-chew 400ms ease-out}",
+      ".dshpet-eating .dshpet-whale-blush{animation:dshpet-whale-blush 620ms ease-out}",
       ".dshpet-halo{position:absolute;inset:-12px;border-radius:50%;pointer-events:none;",
       "background:radial-gradient(circle,rgba(255,214,102,.55),rgba(255,214,102,0) 70%);",
       "animation:dshpet-glow-pulse 900ms ease-in-out infinite}",
@@ -190,6 +209,31 @@ window.__ModuleLoader__.load({
       "@keyframes dshpet-shake-light{",
       "0%,100%{transform:translateX(0)}25%{transform:translateX(-1.5px)}",
       "75%{transform:translateX(1.5px)}}",
+      /* 鲸鱼的待机动作：浮沉、摆尾、划鳍、眨眼、喷水、闪光，以及进食时的
+         张嘴 / 脸红。都是本实现补的，策划只规定了 eat-bounce。 */
+      "@keyframes dshpet-whale-bob{",
+      "0%,100%{transform:translateY(0) rotate(-1deg)}",
+      "50%{transform:translateY(-1.6px) rotate(1deg)}}",
+      "@keyframes dshpet-whale-wag{",
+      "0%,100%{transform:rotate(-7deg)}50%{transform:rotate(9deg)}}",
+      "@keyframes dshpet-whale-fin{",
+      "0%,100%{transform:rotate(4deg)}50%{transform:rotate(-14deg)}}",
+      "@keyframes dshpet-whale-blink{",
+      "0%,92%,100%{transform:scaleY(1)}95%{transform:scaleY(.08)}}",
+      "@keyframes dshpet-whale-spout{",
+      "0%{opacity:0;transform:translateY(3px) scale(.5)}",
+      "35%{opacity:1;transform:translateY(-1px) scale(1)}",
+      "100%{opacity:0;transform:translateY(-6px) scale(.7)}}",
+      "@keyframes dshpet-whale-sparkle{",
+      "0%,100%{opacity:.35;transform:scale(.7) rotate(0)}",
+      "50%{opacity:1;transform:scale(1.15) rotate(45deg)}}",
+      "@keyframes dshpet-whale-chew{",
+      "0%,100%{transform:scaleY(1)}",
+      "35%{transform:scaleY(2.1) translateY(.6px)}",
+      "70%{transform:scaleY(.7)}}",
+      "@keyframes dshpet-whale-blush{",
+      "0%,100%{opacity:.5;transform:scale(1)}",
+      "40%{opacity:.95;transform:scale(1.25)}}",
       "@keyframes dshpet-shake-strong{",
       "0%,100%{transform:translate(0,0) rotate(0)}",
       "20%{transform:translate(-3px,1px) rotate(-.8deg)}",
@@ -201,7 +245,13 @@ window.__ModuleLoader__.load({
       "@media (prefers-reduced-motion:reduce){",
       ".dshpet-food,.dshpet-float,.dshpet-eating,.dshpet-halo,",
       ".dshpet-combo[data-tier=gold],.dshpet-combo[data-tier=epic],",
-      ".dshpet-card[data-tier=gold],.dshpet-card[data-tier=epic]{animation:none}}"
+      ".dshpet-card[data-tier=gold],.dshpet-card[data-tier=epic],",
+      ".dshpet-whale-body,.dshpet-whale-tail,.dshpet-whale-fin,.dshpet-whale-eyes,",
+      ".dshpet-whale-spout,.dshpet-whale-sparkle,",
+      ".dshpet-eating .dshpet-whale-mouth,.dshpet-eating .dshpet-whale-blush",
+      "{animation:none}",
+      /* 喷水柱是靠动画才可见的，关动画后给它一个静态可见态。 */
+      ".dshpet-whale-spout{opacity:1}}"
     ].join("");
 
     /** 注入一次样式表；与 tsdown 的 css-modules 内联插件同一个惯例。 */
@@ -288,6 +338,7 @@ window.__ModuleLoader__.load({
       return {
         name: config.petName,
         species: config.petSpecies,
+        avatar: config.petAvatar,
         icon: config.petIcon,
         mood: 80,
         hunger: 60,
@@ -308,6 +359,7 @@ window.__ModuleLoader__.load({
       var next = {
         name: pet.name,
         species: pet.species,
+        avatar: pet.avatar,
         icon: pet.icon,
         mood: pet.mood,
         hunger: Math.max(0, pet.hunger - food),
@@ -574,6 +626,155 @@ window.__ModuleLoader__.load({
 
     //#region 视图
 
+    /** 瞳孔 / 嘴的深蓝墨色；主体渐变取 DeepSeek 的品牌蓝 #4d6bfe。 */
+    var WHALE_INK = "#16224d";
+
+    /** 轮廓描边：比主色深一档的蓝，二次元赛璐璐那种线稿感。 */
+    var WHALE_LINE = "#2b3f9e";
+
+    /**
+     * 一只眼睛。normal/gold 是带高光的圆瞳，epic 直接变星星眼。
+     * @param cx - 眼睛中心 x（viewBox 坐标）。
+     * @param cy - 眼睛中心 y。
+     * @param star - 是否画成星星眼。
+     * @returns 眼睛节点数组。
+     */
+    function whaleEye(cx, cy, star) {
+      if (star) {
+        return [
+          h("path", {
+            key: "star",
+            d: "M0-6C.7-2 2-.7 6 0 2 .7 .7 2 0 6-.7 2-2 .7-6 0-2-.7-.7-2 0-6Z",
+            transform: "translate(" + cx + " " + cy + ")",
+            fill: "#ffe066"
+          }),
+          h("circle", { key: "core", cx: cx, cy: cy, r: 1.5, fill: "#fff8d6" })
+        ];
+      }
+      return [
+        h("ellipse", { key: "iris", cx: cx, cy: cy, rx: 4.2, ry: 5.2, fill: WHALE_INK }),
+        h("circle", { key: "hi", cx: cx - 1.3, cy: cy - 2, r: 1.7, fill: "#ffffff" }),
+        h("circle", {
+          key: "hi2", cx: cx + 1.2, cy: cy + 2.2, r: .85, fill: "#ffffff", opacity: .75
+        })
+      ];
+    }
+
+    /**
+     * DeepSeek 二次元小鲸的头像：一张 44px 的内联 SVG，部件各自挂 CSS 动画
+     * （浮沉 / 摆尾 / 划鳍 / 眨眼 / 喷水），epic 连击时加星星眼与闪光。
+     *
+     * 不用外链图片：插件产物是单文件 JS，塞不了资源，而 SVG 还能跟着 combo
+     * 换表情。id 带前缀避免和宿主页面的 defs 撞名。
+     * @param props - { tier }：当前连击视觉等级。
+     * @returns 鲸鱼节点。
+     */
+    function WhaleAvatar(props) {
+      var excited = props.tier === "epic";
+      return h(
+        "svg",
+        {
+          className: "dshpet-whale",
+          viewBox: "0 0 64 64",
+          role: "img",
+          "aria-label": "鲸鱼宠物"
+        },
+        h(
+          "defs",
+          null,
+          h(
+            "linearGradient",
+            { id: "dshpet-whale-skin", x1: "0", y1: "0", x2: "0", y2: "1" },
+            h("stop", { offset: "0", stopColor: "#8fabff" }),
+            h("stop", { offset: ".55", stopColor: "#4d6bfe" }),
+            h("stop", { offset: "1", stopColor: "#2f4bd8" })
+          ),
+          h(
+            "linearGradient",
+            { id: "dshpet-whale-belly", x1: "0", y1: "0", x2: "0", y2: "1" },
+            h("stop", { offset: "0", stopColor: "#ffffff", stopOpacity: ".92" }),
+            h("stop", { offset: "1", stopColor: "#d7e2ff", stopOpacity: ".85" })
+          )
+        ),
+        // 喷水柱：只在头顶那一小块，靠动画循环冒出来。
+        h(
+          "g",
+          { className: "dshpet-whale-spout" },
+          h("path", {
+            d: "M20 17C18.8 13.6 21.4 11.6 20.2 8.6",
+            fill: "none",
+            stroke: "#bcd2ff",
+            strokeWidth: 1.6,
+            strokeLinecap: "round"
+          }),
+          h("circle", { cx: 20.4, cy: 6.6, r: 1.7, fill: "#dbe6ff" }),
+          h("circle", { cx: 16.4, cy: 9.4, r: 1.2, fill: "#dbe6ff", opacity: .85 }),
+          h("circle", { cx: 24.2, cy: 9, r: 1, fill: "#dbe6ff", opacity: .7 })
+        ),
+        h(
+          "g",
+          { className: "dshpet-whale-body" },
+          // 尾鳍与胸鳍在身体之下，免得盖住肚皮的高光。
+          h("path", {
+            className: "dshpet-whale-tail",
+            d: "M43 27C50 24.6 55 17.6 59.4 18.2 62.4 18.8 58.4 27 57.4 33"
+              + "C58.4 39 62.4 47.2 59.4 47.8 55 48.4 50 41.4 43 39Z",
+            fill: "url(#dshpet-whale-skin)",
+            stroke: WHALE_LINE,
+            strokeWidth: 1.1
+          }),
+          h("path", {
+            className: "dshpet-whale-fin",
+            d: "M17.4 44.5C13 48.6 14.2 54.8 20 52.8 23.8 51.4 25 47.4 24.2 44Z",
+            fill: "#3f5ae8",
+            stroke: WHALE_LINE,
+            strokeWidth: 1.1
+          }),
+          h("ellipse", {
+            cx: 29, cy: 33, rx: 20, ry: 17,
+            fill: "url(#dshpet-whale-skin)",
+            stroke: WHALE_LINE,
+            strokeWidth: 1.2
+          }),
+          // 白肚皮：上沿是一条向上鼓的分界线，下沿沿着身体轮廓的弧走，
+          // 这样它是「贴在身上的肚皮」而不是一个浮在身上的白椭圆。弧半径比
+          // 身体小 0.7，免得盖掉身体下沿的那条描边。
+          h("path", {
+            d: "M10.3 37C16.8 33 41.2 33 47.7 37A19.3 16.3 0 0 1 10.3 37Z",
+            fill: "url(#dshpet-whale-belly)"
+          }),
+          h("ellipse", {
+            cx: 19.5, cy: 22.5, rx: 6.5, ry: 3.2, fill: "#ffffff",
+            opacity: .3, transform: "rotate(-24 19.5 22.5)"
+          }),
+          h("g", { className: "dshpet-whale-blush", opacity: .5 },
+            h("ellipse", { cx: 14.6, cy: 37.6, rx: 3.4, ry: 2, fill: "#ff86ac" }),
+            h("ellipse", { cx: 43.4, cy: 37.6, rx: 3.4, ry: 2, fill: "#ff86ac" })),
+          h("g", { className: "dshpet-whale-eyes" },
+            whaleEye(21.5, 29.5, excited),
+            whaleEye(35, 29.5, excited)),
+          h("path", {
+            className: "dshpet-whale-mouth",
+            d: excited
+              ? "M25 39.4C26.6 43.4 30.4 43.4 32 39.4Z"
+              : "M25.6 39.4C27.2 42.2 30.4 42.2 32 39.4",
+            fill: excited ? WHALE_INK : "none",
+            stroke: WHALE_INK,
+            strokeWidth: 1.5,
+            strokeLinecap: "round"
+          })
+        ),
+        excited
+          ? h(
+            "g",
+            { className: "dshpet-whale-sparkle", fill: "#ffe066" },
+            h("path", { d: "M0-3.4C.4-.9 .9-.4 3.4 0 .9 .4 .4 .9 0 3.4-.4 .9-.9 .4-3.4 0-.9-.4-.4-.9 0-3.4Z", transform: "translate(6 16)" }),
+            h("path", { d: "M0-2.6C.3-.7 .7-.3 2.6 0 .7 .3 .3 .7 0 2.6-.3 .7-.7 .3-2.6 0-.7-.3-.3-.7 0-2.6Z", transform: "translate(54 12)" })
+          )
+          : null
+      );
+    }
+
     /**
      * 一条特效：食物飞入（600ms）→ 飘字（1200ms，延迟 600ms 起）。
      * @param props - { effect, index }。
@@ -661,12 +862,15 @@ window.__ModuleLoader__.load({
               h(
                 "span",
                 { className: "dshpet-avatar" },
-                // key 随 eatKey 变化 → 节点重挂载 → 进食弹跳动画重新播放。
+                // key 随 eatKey 变化 → 节点重挂载 → 进食弹跳动画重新播放
+                // （鲸鱼的张嘴 / 脸红也挂在 .dshpet-eating 的后代选择器上）。
                 h("span", {
                   key: "eat-" + String(state.eatKey),
                   className: state.eatKey > 0 ? "dshpet-eating" : undefined,
                   style: { display: "inline-block" }
-                }, pet.icon),
+                }, pet.avatar === "whale"
+                  ? h(WhaleAvatar, { tier: state.comboTier })
+                  : pet.icon),
                 state.comboTier === "epic" ? h("span", { className: "dshpet-halo" }) : null
               ),
               collapsed
