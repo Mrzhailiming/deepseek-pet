@@ -13,7 +13,9 @@
 你和 Agent 干活的每一步，它都在右下角吃东西 —— 你发消息喂 🥕、模型回一句喂 🐟、工具跑完一次喂 🍖。
 工具循环越密，Combo 越高，特效越夸张，鲸鱼会变**星星眼**。
 
-<img src="docs/preview.png" width="720" alt="三档形态：平时 / 连击 / 星星眼">
+<img src="docs/demo.gif" width="720" alt="Agent 干活时，食物从会话区飞向鲸鱼，Combo 一路涨到彩虹">
+
+<sub>真实录屏：一轮工具循环把 Combo 从 ×1 推到 ×10，鲸鱼吃到星星眼。</sub>
 
 装它不用改 dsh 仓库的一个字节，也不用重新构建前端。
 
@@ -62,6 +64,8 @@ pnpm dsh plugin --profile web remove dsh-pet-plugin
 ---
 
 ## 玩法
+
+<img src="docs/preview.png" width="700" alt="三档形态：平时 / 连击 / 星星眼">
 
 - 食物从会话里事件发生的位置**飞过来**落到鲸鱼嘴边，跟着冒 `+N 🐟 +N ⭐` 的飘字。
 - 连续动作攒 Combo：白字 → 金字（震动）→ 彩虹（强震 + 光环），最高档鲸鱼换**星星眼 + O 型嘴**。
@@ -128,7 +132,7 @@ deepseek-pet/
 │   ├── test/smoke.mjs               零依赖冒烟测试
 │   └── plugin.md                    插件详解
 ├── pet-auto-feed-plugin-design.md   策划原文
-└── docs/                            README 用的效果图
+└── docs/                            README 用的效果图 / 录屏
 ```
 
 它是怎么在不改宿主仓库的前提下接上去的、事件从哪来、Combo 怎么算、鲸鱼怎么画的、哪些地方偏离了策划 —— 都在 [`dsh-pet-plugin/plugin.md`](dsh-pet-plugin/plugin.md)。
