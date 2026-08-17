@@ -1,0 +1,12 @@
+# 宠物自动喂食插件的配置层。
+#
+# 只插入一行 Loader 记录。这一行有两个作用：
+#  1. host 侧加载 index.js（空实现，不做任何事）；
+#  2. 让 @deepseek-ai/dsh-client-modules 的 dsh.client 扫描看见这个包，
+#     从而把 exports["./client"] 的产物挂到 /plugins/dsh-pet-plugin/client.js，
+#     并写进 window.__DSH_BOOT__ 的浏览器 roster。
+#
+# 全部行为都在浏览器半，因此这一行不需要 config，也不覆盖任何既有行。
+- insert:
+    - id: pet-feed
+      name: dsh-pet-plugin
