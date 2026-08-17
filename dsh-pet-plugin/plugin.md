@@ -1,8 +1,23 @@
 # dsh-pet-plugin — 插件详解
 
-这份文档写插件**内部是怎么实现的**：接入方式、事件来源、计算规则、宠物形象、打包校验、以及偏离策划的地方。只想知道怎么装怎么用，看 [`../README.md`](../README.md)。
+这份文档写插件**内部是怎么实现的**：接入方式、事件来源、全部可调的配置项、计算规则、宠物形象、打包校验、以及偏离策划的地方。只想知道怎么装、怎么打包、怎么玩，看 [`../README.md`](../README.md)。
 
 策划原文：[`../pet-auto-feed-plugin-design.md`](../pet-auto-feed-plugin-design.md)。
+
+```
+deepseek-pet/
+├── dsh-pet-plugin/                  插件包本体（这一整个目录就是分发单位）
+│   ├── index.js                     host 半：空实现，只为成为一条活着的 Loader entry
+│   ├── lib/client.js                浏览器半：手写产物，宠物 / Combo / 特效 / 鲸鱼 SVG 都在这里
+│   ├── cordis.patch.yml             配置层：往 profile 里插一行 Loader 记录
+│   ├── scripts/pack.mjs             打包 + 校验（零依赖）
+│   ├── test/smoke.mjs               零依赖冒烟测试
+│   └── plugin.md                    这份文档
+├── pet-auto-feed-plugin-design.md   策划原文
+└── docs/                            README 用的效果图 / 录屏
+```
+
+`lib/client.js` 是唯一有逻辑的文件（约 1700 行，含 `//#region` 分区：配置 / 样式 / 计算 / store / 视图 / 插件体）。
 
 ---
 
@@ -41,6 +56,44 @@ Conversation 引擎会在打开会话、翻历史、边界解析、插件集变�
 
 1. **新鲜度**：`Date.now() - event.time > 30s` 的事件一律不喂。打开一个旧会话时整段日志会被折叠一次，这一条挡掉了它。
 2. **去重**：键取 `seq + time + type` 复合（`seq` 只在会话内单调，跨会话不可比），只保留新鲜度窗口内的键。
+
+---
+
+## 调参：浏览器侧配置
+
+宠物名字、连击窗口、食物量、要不要特效……都能改。配置走 `localStorage`，在页面控制台执行后**刷新生效**：
+
+```js
+localStorage.setItem('dsh-pet-plugin/config', JSON.stringify({
+  comboWindowMs: 3000,   // Combo 窗口（默认 5000）
+  maxCombo: 20,          // 最大连击（默认 10，注意会抬高经验倍率上限）
+  maxFood: 25,           // 单次最大食物量（默认 30）
+  tokensPerFood: 30,     // 曲线起点：约等于第一份食物的 token 量（默认 60，越小吃得越多）
+  foodPerDouble: 4,      // token 每翻一倍多给几份食物（默认 2.5）
+  hungerRegenPerMin: 0,  // 每分钟回升的饥饿度（默认 2；0 = 只降不升）
+  manualFeedEnabled: false,   // 关掉主动喂食，卡片上不再有 🍬（默认 true）
+  manualFeedFood: 25,    // 一口零食顶多少饱食（默认 15）
+  manualFeedExp: 0,      // 一口零食给多少经验（默认 1；0 = 不给）
+  manualSnackMax: 10,    // 零食格数上限（默认 5）
+  manualSnackRegenMs: 10000,  // 多久回一格零食（默认 45000；<= 0 = 永远满格）
+  hungryAt: 60,          // 饥饿到多少就开始报警（默认 80，即饱食度只剩 20 以内）
+  persist: false,        // 关掉进度落盘，回到刷新即重来（默认 true）
+  saveDebounceMs: 3000,  // 落盘的合并写窗口（默认 1500）
+  offlineRegenCapMs: 3600000, // 离线饥饿最多按多久结算（默认 86400000，即 24h）
+  effectsEnabled: false, // 只留宠物卡片，关掉飞行特效（默认 true）
+  effectTtlMs: 1500,     // 单条特效时长（默认 2200）
+  flyFromConversation: false, // 食物就地飞入，不从会话区飞过来（默认 true）
+  freshnessMs: 60000,    // 多久之内的事件才喂（默认 30000）
+  petName: '球球',        // 宠物名（默认 '深深'）
+  petSpecies: '史莱姆',   // 副标题的种族（默认 '深海小鲸'）
+  petAvatar: 'emoji',    // 'whale'（默认）= 二次元鲸鱼；'emoji' = 用下面这个字形
+  petIcon: '🐙',         // petAvatar 为 'emoji' 时的头像（默认 🐳）
+}))
+```
+
+- 只写想改的字段，其余用默认值（`DEFAULTS`）。`resolveConfig` 只接受**同类型标量**覆盖：类型不匹配的字段静默忽略，非法 JSON 警告一次并整体回退默认值。所以数组 / 对象形态的配置（比如等级形态门槛）刻意没有提供，见「已知限制」。
+- `enabled: false` 直接关掉整个插件（既不观察事件也不显示浮层）。
+- **为什么配置不走 profile 的 yml**：`cordis.patch.yml` 里那行 Loader 记录的 `config` 是 **host 侧** entry 的配置，而这些参数是浏览器半在用的；`client-modules` 把产物挂上去时不带 entry 配置过来，浏览器半读不到。`localStorage` 是插件与浏览器之间已有的那条缝（进度落盘走的是同一条），所以配置也走它。
 
 ---
 
