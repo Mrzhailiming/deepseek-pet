@@ -1,6 +1,6 @@
 {
   "name": "dsh-pet-plugin",
-  "version": "0.1.0",
+  "version": "0.3.0",
   "description": "宠物自动喂食插件 — 把 Agent 的用户输入 / LLM 生成 / 工具调用变成喂食 Combo 特效",
   "license": "MIT",
   "type": "module",
