@@ -2,11 +2,17 @@
  * 打包分发脚本：校验清单与产物格式 → 跑冒烟测试 → pnpm/npm pack 出 tarball
  * → 解开 tarball 逐项复核里面装的到底是什么。
  *
+ * 素材管线（素材 PNG → APNG 合成 → base64 内联进 client.js）由本脚本自动触发，
+ * 只要包里有 assets/deepseek/build-apng.cjs 就会在校验前先重建资源；
+ * 想跳过重建用 --no-assets，--check 模式默认跳过（只读校验当前产物）。
+ *
  * 别人拿到 tarball 后只要一条命令，不需要任何构建授权：
  *   dsh plugin --profile web add ./dsh-pet-plugin-<version>.tgz
  *
  * 用法（零依赖，只需要 node）：
- *   node scripts/pack.mjs              # 打本包，产物落在仓库顶层 ./dist
+ *   node scripts/pack.mjs              # 打本包（自动重建素材），产物落在仓库顶层 ./dist
+ *   node scripts/pack.mjs --no-assets  # 跳过素材管线，直接用现有产物打包
+ *   node scripts/pack.mjs --deploy     # 打包 + 复核后自动调顶层 start_dsh.mjs 装进 dsh 并起
  *   node scripts/pack.mjs --check      # 只校验，不打包
  *   node scripts/pack.mjs 别的包目录     # 换要打的包（相对当前工作目录）
  *   node scripts/pack.mjs --out build  # 换输出目录（相对仓库顶层）
@@ -151,13 +157,38 @@ for (const listed of files) {
 }
 
 // ------------------------------------------------- 2. cordis.patch.yml
-
 if (typeof patch === 'string' && existsSync(resolve(root, patch))) {
   const patchText = readFileSync(resolve(root, patch), 'utf8')
   expect(/^\s*-\s*insert:/m.test(patchText), `${patch}: 没看到 "- insert:" —— 配置层不会插入任何 Loader 行`)
   // 行里的 name 必须是包名：client-modules 要求「一条活着的 entry，其 options.name 等于包名」。
   const named = new RegExp(`name:\\s*['"]?${pkg.name.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}['"]?\\s*$`, 'm')
   expect(named.test(patchText), `${patch}: 没有一行的 name 等于包名 ${pkg.name} —— dsh.client 扫描会跳过这个包`)
+}
+
+// ------------------------------------------------- 2.5 素材管线
+// 资源是打包的原料：素材 PNG -> APNG 合成 -> base64 内联进 client.js。
+// 必须赶在第 3 步（client 产物校验）之前跑，否则校验/冒烟/复核的都是旧素材。
+// 包内没有 build-apng.cjs 就跳过（本步骤是 dsh-pet-plugin 专属，别的包不受影响）。
+const assetBuilder = join(root, 'assets', 'deepseek', 'build-apng.cjs')
+const assetIntegrator = join(root, 'scripts', 'integrate-apng.mjs')
+const hasAssetPipeline = existsSync(assetBuilder) && existsSync(assetIntegrator)
+const skipAssets = args.includes('--no-assets')
+if (hasAssetPipeline && !checkOnly && !skipAssets) {
+  console.log('\n[assets] 素材管线：合成 APNG → 内联 client.js')
+  const steps = [['合成 APNG', assetBuilder], ['内联 client.js', assetIntegrator]]
+  for (const [label, script] of steps) {
+    const run = spawnSync(process.execPath, [script], { cwd: root, encoding: 'utf8' })
+    if (run.status !== 0) {
+      fail(`素材管线[${label}]失败:\n${run.stdout}${run.stderr}`)
+      break
+    }
+    const tail = run.stdout.trim().split('\n').slice(-2)
+    for (const line of tail) if (line.trim()) console.log(`  · ${line.trim()}`)
+  }
+} else if (checkOnly) {
+  notes.push('素材管线: check 模式跳过（--check 只校验当前产物，不重建资源）')
+} else if (skipAssets) {
+  notes.push('素材管线: 跳过（--no-assets）')
 }
 
 // -------------------------------------------------- 3. 浏览器产物格式
@@ -318,6 +349,27 @@ if (inside.has('package.json')) {
 }
 
 report('复核')
+
+// -------------------------------------------------- 7. 部署（可选）
+// --deploy：打包 + 复核通过后，调顶层 start_dsh.mjs 把源码 link 装进 dsh profile 并起，
+// 一条命令走完「改素材 → 出包 → 本地看效果」。跳过其自带的冒烟测试（本脚本已跑过）。
+// 部署失败只警告不拦截——打包产物已就绪，手动 node start_dsh.mjs 可看原因。
+const startDsh = join(repoRoot, 'start_dsh.mjs')
+if (args.includes('--deploy')) {
+  if (!existsSync(startDsh)) {
+    fail(`--deploy 需要仓库顶层的 start_dsh.mjs，没找到: ${startDsh}`)
+  }
+  console.log('\n[deploy] 本地部署：装进 dsh profile + 起（node start_dsh.mjs --no-test）')
+  const deploy = spawnSync(process.execPath, [startDsh, '--no-test'], { cwd: repoRoot, encoding: 'utf8' })
+  const tail = (deploy.stdout ?? '').trim().split('\n').slice(-8)
+  if (deploy.status === 0) {
+    console.log('  ✓ 已部署并启动')
+    for (const line of tail) if (line.trim()) console.log(`    ${line}`)
+  } else {
+    console.error('  ⚠ 部署未成功（打包产物已就绪，可手动 node start_dsh.mjs 排查）')
+    for (const line of tail) console.error(`    ${line}`)
+  }
+}
 
 const kib = (readFileSync(tarball).length / 1024).toFixed(1)
 console.log(`

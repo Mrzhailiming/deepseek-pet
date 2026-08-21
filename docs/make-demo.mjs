@@ -15,7 +15,7 @@
  * 零依赖，输出确定（同样的输入逐字节一样，方便 diff）。
  */
 
-import { writeFileSync } from "node:fs";
+import { readFileSync, writeFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 
@@ -216,129 +216,41 @@ function round(n) {
 
 //#endregion
 
-//#region 鲸鱼
-
-const INK = "#16224d";
-const LINE = "#2b3f9e";
-/** 成年档（Lv.6）的皮肤渐变，取自 `WHALE_STAGES`。 */
-const SKIN = ["#6f8cff", "#2740c9", "#16226e"];
-/** 眼睛缩放：成年档 .92。 */
-const EYE = 0.92;
-
-/** 一只眼睛（正常态：大瞳 + 两点高光）。 */
-function eye(cx, cy) {
-  const k = EYE;
-  return [
-    `<ellipse cx="${cx}" cy="${cy}" rx="${round(4.2 * k)}" ry="${round(5.2 * k)}" fill="${INK}"/>`,
-    `<circle cx="${round(cx - 1.3 * k)}" cy="${round(cy - 2 * k)}" r="${round(1.7 * k)}" fill="#fff"/>`,
-    `<circle cx="${round(cx + 1.2 * k)}" cy="${round(cy + 2.2 * k)}" r="${round(0.85 * k)}" fill="#fff" opacity=".75"/>`
-  ].join("");
-}
-
-/** 星星眼（epic 连击那档）。 */
-function starEye(cx, cy) {
-  return [
-    `<path d="M0-6C.7-2 2-.7 6 0 2 .7 .7 2 0 6-.7 2-2 .7-6 0-2-.7-.7-2 0-6Z"`,
-    ` transform="translate(${cx} ${cy}) scale(${EYE})" fill="#ffe066"/>`,
-    `<circle cx="${cx}" cy="${cy}" r="${round(1.5 * EYE)}" fill="#fff8d6"/>`
-  ].join("");
-}
+//#region 精灵图
 
 /**
- * 整只鲸鱼。三套表情（平时 / 星星眼 / 睡脸）都画在里面，靠各自的可见性动画换。
- * 路径全部照抄 `WhaleAvatar`，viewBox 同样是 `0 0 64 64`。
+ * 新版宠物形象：用 v2-transparent/ 目录下的 PNG 精灵图替代旧的 SVG 矢量路径。
+ * 五张图按时间轴切换：adult-normal → adult-excited → legend-normal → legend-sleep。
  */
-function whale() {
-  return `<svg class="whale" x="${AVATAR_XY[0]}" y="${AVATAR_XY[1]}" width="${AVATAR}" height="${AVATAR}" viewBox="0 0 64 64" overflow="visible">
-  <g class="w-body">
-    <path class="w-tail" d="M43 27C50 24.6 55 17.6 59.4 18.2 62.4 18.8 58.4 27 57.4 33C58.4 39 62.4 47.2 59.4 47.8 55 48.4 50 41.4 43 39Z" fill="url(#skin)" stroke="${LINE}" stroke-width="1.1"/>
-    <path class="w-fin" d="M17.4 44.5C13 48.6 14.2 54.8 20 52.8 23.8 51.4 25 47.4 24.2 44Z" fill="${SKIN[2]}" stroke="${LINE}" stroke-width="1.1"/>
-    <path d="M27 20.5C29.6 13.2 32.4 8 35.2 4.4 38.2 10 40.2 15.4 40.6 21Z" fill="url(#skin)" stroke="${LINE}" stroke-width="1.1"/>
-    <ellipse cx="29" cy="33" rx="20" ry="17" fill="url(#skin)" stroke="${LINE}" stroke-width="1.2"/>
-    <path d="M10.3 37C16.8 33 41.2 33 47.7 37A19.3 16.3 0 0 1 10.3 37Z" fill="url(#belly)"/>
-    <ellipse cx="19.5" cy="22.5" rx="6.5" ry="3.2" fill="#fff" opacity=".3" transform="rotate(-24 19.5 22.5)"/>
-    <g class="w-blush" opacity=".5">
-      <ellipse cx="14.6" cy="37.6" rx="3.4" ry="2" fill="#ff86ac"/>
-      <ellipse cx="43.4" cy="37.6" rx="3.4" ry="2" fill="#ff86ac"/>
-    </g>
-    <g class="v v-eyes-calm"><g class="w-eyes">${eye(21.5, 29.5)}${eye(35, 29.5)}</g></g>
-    <g class="v v-eyes-star">${starEye(21.5, 29.5)}${starEye(35, 29.5)}</g>
-    <g class="v v-eyes-shut">
-      <path d="M17.6 29.5C19.4 32.6 23.6 32.6 25.4 29.5" fill="none" stroke="${INK}" stroke-width="1.5" stroke-linecap="round"/>
-      <path d="M31.1 29.5C32.9 32.6 37.1 32.6 38.9 29.5" fill="none" stroke="${INK}" stroke-width="1.5" stroke-linecap="round"/>
-    </g>
-    <path class="v v-mouth-calm w-mouth" d="M25.6 39.4C27.2 42.2 30.4 42.2 32 39.4" fill="none" stroke="${INK}" stroke-width="1.5" stroke-linecap="round"/>
-    <path class="v v-mouth-o" d="M25 39.4C26.6 43.4 30.4 43.4 32 39.4Z" fill="${INK}" stroke="${INK}" stroke-width="1.5" stroke-linecap="round"/>
-    <path class="v v-mouth-flat" d="M26.4 40.4C27.6 40.4 30 40.4 31.2 40.4" fill="none" stroke="${INK}" stroke-width="1.5" stroke-linecap="round"/>
-  </g>
-  <g class="w-spout v v-spout">
-    <path d="M20 17C18.8 13.6 21.4 11.6 20.2 8.6" fill="none" stroke="#bcd2ff" stroke-width="1.6" stroke-linecap="round"/>
-    <circle cx="20.4" cy="6.6" r="1.7" fill="#dbe6ff"/>
-    <circle cx="16.4" cy="9.4" r="1.2" fill="#dbe6ff" opacity=".85"/>
-    <circle cx="24.2" cy="9" r="1" fill="#dbe6ff" opacity=".7"/>
-  </g>
-  <g class="v v-eyes-star"><g class="w-sparkle" fill="#ffe066">
-    <path d="M0-3.4C.4-.9 .9-.4 3.4 0 .9 .4 .4 .9 0 3.4-.4 .9-.9 .4-3.4 0-.9-.4-.4-.9 0-3.4Z" transform="translate(6 16)"/>
-    <path d="M0-2.6C.3-.7 .7-.3 2.6 0 .7 .3 .3 .7 0 2.6-.3 .7-.7 .3-2.6 0-.7-.3-.3-.7 0-2.6Z" transform="translate(54 12)"/>
-  </g></g>
-</svg>`;
+const SPRITE_DIR = join(dirname(fileURLToPath(import.meta.url)), "..", "dsh-pet-plugin", "assets", "deepseek", "v2-transparent");
+
+function spriteDataUri(filename) {
+  const buf = readFileSync(join(SPRITE_DIR, filename));
+  return `data:image/png;base64,${buf.toString("base64")}`;
 }
 
-//#endregion
-
-//#region 代码猫
-
-/** 猫的配色，取自 `FORM_SKIN.cat` / `FORM_LINE.cat`（承着鲸鱼的蓝）。 */
-const CAT_SKIN = ["#b7c4ff", "#7b8cf0", "#4b58c4"];
-const CAT_LINE = "#39429b";
-/** 眼睛缩放：`FORMS` 里猫的 eyeGrow 是 .95。 */
-const CAT_EYE = 0.95;
-/** 头像边长：进化档 62（成年 54），所以比鲸鱼那会儿大一圈、也往左上挪一点。 */
-const CAT_SIZE = 60;
-
-/** 猫的一只眼睛（和鲸鱼同一套画法，只是缩放不同）。 */
-function catEye(cx, cy) {
-  const k = CAT_EYE;
-  return [
-    `<ellipse cx="${cx}" cy="${cy}" rx="${round(4.2 * k)}" ry="${round(5.2 * k)}" fill="${INK}"/>`,
-    `<circle cx="${round(cx - 1.3 * k)}" cy="${round(cy - 2 * k)}" r="${round(1.7 * k)}" fill="#fff"/>`,
-    `<circle cx="${round(cx + 1.2 * k)}" cy="${round(cy + 2.2 * k)}" r="${round(0.85 * k)}" fill="#fff" opacity=".75"/>`
-  ].join("");
-}
+const SPRITE_ADULT_NORMAL = spriteDataUri("deepseek-adult-normal.png");
+const SPRITE_ADULT_EXCITED = spriteDataUri("deepseek-adult-excited.png");
+const SPRITE_LEGEND_NORMAL = spriteDataUri("deepseek-legend-normal.png");
+const SPRITE_LEGEND_SLEEP = spriteDataUri("deepseek-legend-sleep.png");
 
 /**
- * 🐱 代码猫。路径逐字取自 `FORMS[0].art`（猫那一份），层序也照抄
- * `WhaleAvatar`：尾 → 爪 → 耳 → 身 → 肚皮/高光 → 鼻须 → 腮红 → 眼 → 嘴。
- * 只画得着的两张脸：平时 + 睡脸（星星眼那一段它还是鲸鱼）。
+ * 宠物头像：四张精灵图叠在一起，靠 CSS 可见性动画按时间轴切换。
+ * - adult-normal: 开场 + 暴食结束后的过渡
+ * - adult-excited: epic 连击（星星眼）
+ * - legend-normal: 变身后
+ * - legend-sleep: 睡着
  */
-function cat() {
-  return `<svg class="whale" x="${AVATAR_XY[0] - 3}" y="${AVATAR_XY[1] - 3}" width="${CAT_SIZE}" height="${CAT_SIZE}" viewBox="0 0 64 64" overflow="visible">
-  <g class="w-body">
-    <path class="w-tail" d="M43.4 50.6C50.6 51.6 55.4 45.2 54.2 38.2C53.6 34.6 49.4 35 49.8 38.4C50.4 43.2 47.4 46.8 42.4 45.8Z" fill="url(#skin-cat)" stroke="${CAT_LINE}" stroke-width="1.1"/>
-    <path class="w-fin" d="M23.6 53.6C23.6 50.4 29.4 50.4 29.4 53.6C29.4 56.4 23.6 56.4 23.6 53.6ZM34.6 53.6C34.6 50.4 40.4 50.4 40.4 53.6C40.4 56.4 34.6 56.4 34.6 53.6Z" fill="${CAT_SKIN[2]}" stroke="${CAT_LINE}" stroke-width="1.1"/>
-    <path d="M17.6 20.4 16.4 5.6 30.4 13.6Z" fill="url(#skin-cat)" stroke="${CAT_LINE}" stroke-width="1.1"/>
-    <path d="M46.4 20.4 47.6 5.6 33.6 13.6Z" fill="url(#skin-cat)" stroke="${CAT_LINE}" stroke-width="1.1"/>
-    <path d="M20 18.6 19.2 9.8 27 14.4Z" fill="#f7c6d9" stroke="${CAT_LINE}" stroke-width=".8"/>
-    <path d="M44 18.6 44.8 9.8 37 14.4Z" fill="#f7c6d9" stroke="${CAT_LINE}" stroke-width=".8"/>
-    <ellipse cx="32" cy="46" rx="13" ry="11" fill="url(#skin-cat)" stroke="${CAT_LINE}" stroke-width="1.2"/>
-    <ellipse cx="32" cy="28" rx="16" ry="14" fill="url(#skin-cat)" stroke="${CAT_LINE}" stroke-width="1.2"/>
-    <path d="M21.4 45.6C25.6 41.6 38.4 41.6 42.6 45.6A13 11 0 0 1 21.4 45.6Z" fill="url(#belly)"/>
-    <ellipse cx="24" cy="19.6" rx="6.2" ry="3" fill="#ffffff" opacity=".3" transform="rotate(-24 24 19.6)"/>
-    <path d="M30.6 34.6H33.4L32 36.4Z" fill="${INK}"/>
-    <path d="M14.6 32.4 22 34.2M14.8 37 22.2 36.8M49.4 32.4 42 34.2M49.2 37 41.8 36.8" fill="none" stroke="${INK}" stroke-width="1" stroke-linecap="round" opacity=".55"/>
-    <g class="w-blush" opacity=".5">
-      <ellipse cx="20.6" cy="34.2" rx="3.4" ry="2" fill="#ff86ac"/>
-      <ellipse cx="43.4" cy="34.2" rx="3.4" ry="2" fill="#ff86ac"/>
-    </g>
-    <g class="v v-cat-calm"><g class="w-eyes">${catEye(25, 28)}${catEye(39, 28)}</g></g>
-    <g class="v v-cat-shut">
-      <path d="M21.4 28C23.4 31.2 27.4 31.2 29.4 28" fill="none" stroke="${INK}" stroke-width="1.5" stroke-linecap="round"/>
-      <path d="M34.6 28C36.6 31.2 40.6 31.2 42.6 28" fill="none" stroke="${INK}" stroke-width="1.5" stroke-linecap="round"/>
-    </g>
-    <path class="v v-cat-calm w-mouth" d="M28.2 37.2C29.6 39.6 32 39.6 32 37.6C32 39.6 34.4 39.6 35.8 37.2" fill="none" stroke="${INK}" stroke-width="1.5" stroke-linecap="round"/>
-    <path class="v v-cat-shut" d="M29.4 38C30.6 38 33.4 38 34.6 38" fill="none" stroke="${INK}" stroke-width="1.5" stroke-linecap="round"/>
-  </g>
-</svg>`;
+function sprites() {
+  const imgs = [
+    ["v-sprite-adult-normal", SPRITE_ADULT_NORMAL],
+    ["v-sprite-adult-excited", SPRITE_ADULT_EXCITED],
+    ["v-sprite-legend-normal", SPRITE_LEGEND_NORMAL],
+    ["v-sprite-legend-sleep", SPRITE_LEGEND_SLEEP]
+  ];
+  return imgs.map(([cls, uri]) =>
+    `<image class="v ${cls}" x="${AVATAR_XY[0]}" y="${AVATAR_XY[1]}" width="${AVATAR}" height="${AVATAR}" href="${uri}" preserveAspectRatio="xMidYMid meet"/>`
+  ).join("\n  ");
 }
 
 //#endregion
@@ -425,8 +337,8 @@ function petCard() {
     rx: 14, stroke: "rgba(255,159,67,.75)", strokeWidth: 1.6, cls: "v v-frenzy",
     extra: 'filter="url(#warmglow)"'
   }));
-  // 头像：变身前是鲸鱼，变身后是猫。两只都画在里面，靠可见性硬切。
-  out.push(`<g class="avatar"><g class="v v-whale">${whale()}</g><g class="v v-cat">${cat()}</g></g>`);
+  // 头像：四张精灵图叠在一起，按时间轴切换状态。
+  out.push(`<g class="avatar">${sprites()}</g>`);
   // 变身那一下的白光 + 光环（照抄 `.dshpet-morph`：inset -16px 的一圈）。
   const mc = [TARGET[0], AVATAR_XY[1] + AVATAR / 2];
   out.push(`<g class="v v-morph">`);
@@ -488,7 +400,7 @@ function css() {
   parts.push(`.v{opacity:0}`);
   // SVG 元素默认拿 viewBox 当变换原点，缩放会把东西甩到画布中心去；
   // 凡是要 scale 的都得先把原点框改成自身包围盒。
-  parts.push(`.whale *,.food,.avatar{transform-box:fill-box;transform-origin:center}`);
+  parts.push(`.food,.avatar{transform-box:fill-box;transform-origin:center}`);
   parts.push(`.float{transform-box:fill-box;transform-origin:left center}`);
 
   // ---- 会话区：一条条冒出来，冒出来之后就留在那儿（到下一圈才清空）。
@@ -552,55 +464,39 @@ function css() {
   parts.push(window_("k-badge-new", NOTICES[0].at + 200, CYCLE, 240));
   parts.push(`.v-badge-new{animation:k-badge-new ${CYCLE}ms linear infinite}`);
 
-  // ---- 表情：平时 / 星星眼（epic 那两口）/ 睡脸。
+  // ---- 精灵图切换：四张按时间轴显示对应的一张。
   const epicFrom = FEEDS[4].at;
-  parts.push(window_("k-star", epicFrom, FRENZY[1], 160));
-  parts.push(`.v-eyes-star{animation:k-star ${CYCLE}ms linear infinite}`);
-  parts.push(`.v-mouth-o{animation:k-star ${CYCLE}ms linear infinite}`);
-  parts.push(window_("k-shut", SLEEP[0], CYCLE, 200));
-  parts.push(`.v-eyes-shut{animation:k-shut ${CYCLE}ms linear infinite}`);
-  parts.push(`.v-mouth-flat{animation:k-shut ${CYCLE}ms linear infinite}`);
-  // 平时那套：除了星星眼与睡脸的窗口之外都在。
-  parts.push(keyframes("k-calm", [
+  // adult-normal: 开场 → epic 之前，以及 frenzy 结束 → 变身之前
+  parts.push(keyframes("k-sprite-adult-normal", [
     [0, "opacity:1"],
     [epicFrom - 160, "opacity:1"],
     [epicFrom, "opacity:0"],
     [FRENZY[1], "opacity:0"],
     [FRENZY[1] + 200, "opacity:1"],
-    [SLEEP[0] - 200, "opacity:1"],
-    [SLEEP[0], "opacity:0"],
+    [SWAP - 1, "opacity:1"],
+    [SWAP, "opacity:0"],
     [CYCLE, "opacity:0"]
   ]));
-  parts.push(`.v-eyes-calm,.v-mouth-calm{animation:k-calm ${CYCLE}ms linear infinite}`);
-  // 喷水柱：睡着就不喷了。
-  parts.push(keyframes("k-spout", [
-    [0, "opacity:1"],
-    [SLEEP[0] - 200, "opacity:1"],
-    [SLEEP[0], "opacity:0"],
-    [CYCLE, "opacity:0"]
-  ]));
-  parts.push(`.v-spout{animation:k-spout ${CYCLE}ms linear infinite}`);
+  parts.push(`.v-sprite-adult-normal{animation:k-sprite-adult-normal ${CYCLE}ms linear infinite}`);
+  // adult-excited: epic 连击那一段（星星眼）
+  parts.push(window_("k-sprite-adult-excited", epicFrom, FRENZY[1], 160));
+  parts.push(`.v-sprite-adult-excited{animation:k-sprite-adult-excited ${CYCLE}ms linear infinite}`);
+  // legend-normal: 变身后 → 睡着之前
+  parts.push(window_("k-sprite-legend-normal", SWAP, SLEEP[0], 1));
+  parts.push(`.v-sprite-legend-normal{animation:k-sprite-legend-normal ${CYCLE}ms linear infinite}`);
+  // legend-sleep: 睡着那一段
+  parts.push(window_("k-sprite-legend-sleep", SLEEP[0], CYCLE, 200));
+  parts.push(`.v-sprite-legend-sleep{animation:k-sprite-legend-sleep ${CYCLE}ms linear infinite}`);
+
   // Zzz：睡着的时候才飘。
   parts.push(window_("k-zzz", SLEEP[0] + 200, CYCLE, 240));
   parts.push(`.v-zzz-wrap{animation:k-zzz ${CYCLE}ms linear infinite}`);
   parts.push(`.zzz{animation:k-zzz-drift 2.6s ease-in-out infinite}`);
   parts.push(`@keyframes k-zzz-drift{0%{opacity:0;transform:translate(0,2px) scale(.8)}30%{opacity:1}100%{opacity:0;transform:translate(4px,-10px) scale(1.1)}}`);
 
-  // ---- 变身：鲸鱼 / 猫硬切，白光 + 光环 1.6s 走一遍。
-  // 切换点埋在白光最浓那一刻（SWAP），所以看不见「一只变两只」的过渡帧。
-  parts.push(window_("k-whale", 0, SWAP, 1));
-  parts.push(`.v-whale{animation:k-whale ${CYCLE}ms linear infinite}`);
-  parts.push(window_("k-cat", SWAP, CYCLE, 1));
-  parts.push(`.v-cat{animation:k-cat ${CYCLE}ms linear infinite}`);
-  // 猫只有两张脸用得上：平时 + 睡脸（星星眼那一段它还是鲸鱼）。
-  parts.push(window_("k-cat-calm", SWAP, SLEEP[0], 1));
-  parts.push(`.v-cat-calm{animation:k-cat-calm ${CYCLE}ms linear infinite}`);
-  parts.push(window_("k-cat-shut", SLEEP[0], CYCLE, 200));
-  parts.push(`.v-cat-shut{animation:k-cat-shut ${CYCLE}ms linear infinite}`);
+  // ---- 变身白光 + 光环。
   parts.push(window_("k-morph", MORPH[0], MORPH[1], 1));
   parts.push(`.v-morph{animation:k-morph ${CYCLE}ms linear infinite}`);
-  // 照抄 `@keyframes dshpet-morph`：0% 白到底 → 25% 涨过头 → 50% 白光退掉
-  // （这时候露出来的已经是猫）→ 100% 光环散尽。
   parts.push(keyframes("k-flash", [
     [0, "opacity:0;transform:scale(.85)"],
     [MORPH[0], "opacity:1;transform:scale(.85)"],
@@ -667,26 +563,8 @@ function css() {
   ]));
   parts.push(`.g-exp{transform-box:fill-box;transform-origin:left center;animation:k-exp ${CYCLE}ms linear infinite}`);
 
-  // ---- 鲸鱼的待机动作，逐条照抄产物的 keyframes。
-  parts.push(`.w-body{animation:w-bob 3.2s ease-in-out infinite}`);
-  parts.push(`.w-tail{transform-origin:left center;animation:w-wag 1.6s ease-in-out infinite}`);
-  parts.push(`.w-fin{transform-origin:top center;animation:w-fin 2.4s ease-in-out infinite}`);
-  parts.push(`.w-eyes{animation:w-blink 5.2s ease-in-out infinite}`);
-  parts.push(`.w-spout{animation:w-spout 2.6s ease-out infinite}`);
-  parts.push(`.w-sparkle{animation:w-sparkle 1.1s ease-in-out infinite}`);
-  parts.push(`@keyframes w-bob{0%,100%{transform:translateY(0) rotate(-1deg)}50%{transform:translateY(-1.6px) rotate(1deg)}}`);
-  parts.push(`@keyframes w-wag{0%,100%{transform:rotate(-7deg)}50%{transform:rotate(9deg)}}`);
-  parts.push(`@keyframes w-fin{0%,100%{transform:rotate(4deg)}50%{transform:rotate(-14deg)}}`);
-  parts.push(`@keyframes w-blink{0%,92%,100%{transform:scaleY(1)}95%{transform:scaleY(.08)}}`);
-  parts.push(`@keyframes w-spout{0%{opacity:0;transform:translateY(3px) scale(.5)}35%{opacity:1;transform:translateY(-1px) scale(1)}100%{opacity:0;transform:translateY(-6px) scale(.7)}}`);
-  parts.push(`@keyframes w-sparkle{0%,100%{opacity:.35;transform:scale(.7) rotate(0)}50%{opacity:1;transform:scale(1.15) rotate(45deg)}}`);
-
   // ---- 尊重「减少动效」：停在第一帧，图还看得懂。
-  // 停下来的时候要停在「顶格那一帧」：满连击、星星眼、暖橙边、六条消息都在。
-  // `.v-whale` / `.v-name0` 也得点亮：它们现在也是可见性窗口驱动的，漏了就是
-  // 一张没有宠物、也没有名字的空卡片。
-  const still = [".v-combo5", ".v-eyes-star", ".v-mouth-o", ".v-frenzy", ".v-spout", ".v-vit1", ".v-bub0",
-    ".v-whale", ".v-name0"]
+  const still = [".v-combo5", ".v-sprite-adult-excited", ".v-frenzy", ".v-vit1", ".v-bub0", ".v-name0"]
     .concat(MESSAGES.map((_, i) => `.v-msg${i}`))
     .join(",");
   parts.push(
@@ -717,19 +595,10 @@ function build() {
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" role="img" aria-label="deepseek-pet 演示：Agent 干活喂鲸鱼，连击顶格开暴食，解锁成就，摸摸头，升到 Lv.10 分化成代码猫，然后它睡了">
   <title>deepseek-pet — Agent 干活就是在喂它</title>
   <defs>
-    <linearGradient id="skin" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="${SKIN[0]}"/><stop offset=".55" stop-color="${SKIN[1]}"/><stop offset="1" stop-color="${SKIN[2]}"/>
-    </linearGradient>
-    <linearGradient id="skin-cat" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="${CAT_SKIN[0]}"/><stop offset=".55" stop-color="${CAT_SKIN[1]}"/><stop offset="1" stop-color="${CAT_SKIN[2]}"/>
-    </linearGradient>
     <radialGradient id="flash">
       <stop offset="0" stop-color="#ffffff" stop-opacity=".95"/>
       <stop offset=".72" stop-color="#ffffff" stop-opacity="0"/>
     </radialGradient>
-    <linearGradient id="belly" x1="0" y1="0" x2="0" y2="1">
-      <stop offset="0" stop-color="#ffffff" stop-opacity=".92"/><stop offset="1" stop-color="#d7e2ff" stop-opacity=".85"/>
-    </linearGradient>
     <linearGradient id="rainbow" x1="0" y1="0" x2="1" y2="0">
       <stop offset="0" stop-color="#ff5f6d"/><stop offset=".25" stop-color="#ffc371"/>
       <stop offset=".5" stop-color="#47e6b1"/><stop offset=".75" stop-color="#5b8cff"/>

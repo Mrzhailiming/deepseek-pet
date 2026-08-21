@@ -1,0 +1,26 @@
+{
+  "schemaVersion": 1,
+  "defaultPet": "deepseek",
+  "pets": {
+    "deepseek": {
+      "name": "鲸鱼娘",
+      "species": "whale-girl",
+      "source": "Ardot 角色参考表 /assets/deepseek/{stage}-{state}.apng",
+      "stageOrder": ["baby", "young", "adult", "legend"],
+      "states": ["normal", "eat", "sleep", "hungry", "excited", "sad", "pat"],
+      "stages": {
+        "baby":   { "label": "幼体", "unlockLevel": 1 },
+        "young":  { "label": "成长", "unlockLevel": 10 },
+        "adult":  { "label": "成体", "unlockLevel": 30 },
+        "legend": { "label": "传说", "unlockLevel": 60 }
+      },
+      "assetPattern": "deepseek-{stage}-{state}.apng",
+      "frames": {
+        "baby":   { "normal": "deepseek-baby-normal.apng",   "eat": "deepseek-baby-eat.apng",   "sleep": "deepseek-baby-sleep.apng",   "hungry": "deepseek-baby-hungry.apng",   "excited": "deepseek-baby-excited.apng",   "sad": "deepseek-baby-sad.apng",   "pat": "deepseek-baby-pat.apng" },
+        "young":  { "normal": "deepseek-young-normal.apng",  "eat": "deepseek-young-eat.apng",  "sleep": "deepseek-young-sleep.apng",  "hungry": "deepseek-young-hungry.apng",  "excited": "deepseek-young-excited.apng",  "sad": "deepseek-young-sad.apng",  "pat": "deepseek-young-pat.apng" },
+        "adult":  { "normal": "deepseek-adult-normal.apng",  "eat": "deepseek-adult-eat.apng",  "sleep": "deepseek-adult-sleep.apng",  "hungry": "deepseek-adult-hungry.apng",  "excited": "deepseek-adult-excited.apng",  "sad": "deepseek-adult-sad.apng",  "pat": "deepseek-adult-pat.apng" },
+        "legend": { "normal": "deepseek-legend-normal.apng", "eat": "deepseek-legend-eat.apng", "sleep": "deepseek-legend-sleep.apng", "hungry": "deepseek-legend-hungry.apng", "excited": "deepseek-legend-excited.apng", "sad": "deepseek-legend-sad.apng", "pat": "deepseek-legend-pat.apng" }
+      }
+    }
+  }
+}

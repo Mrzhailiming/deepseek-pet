@@ -1,0 +1,11 @@
+dist/
+node_modules/
+*.tgz
+/.workbuddy
+
+# 素材管线中间产物（可由脚本重建，不入库）
+dsh-pet-plugin/assets/deepseek/transparent/
+dsh-pet-plugin/assets/deepseek/deepseekSprites.mjs
+dsh-pet-plugin/assets/deepseek/deepseekSprites.cjs
+/start_claude.bat
+/DeepSeek 鲸鱼娘角色插画.pdf

@@ -13,7 +13,7 @@
 你和 Agent 干活的每一步，它都在右下角吃东西 —— 你发消息喂 🥕、模型回一句喂 🐟、工具跑完一次喂 🍖。
 工具循环越密，Combo 越高，特效越夸张，鲸鱼会变**星星眼**。
 
-<img src="docs/demo.svg" width="820" alt="Agent 干活时，食物从会话区飞向鲸鱼，连击一路涨到彩虹、开暴食、解锁成就，养到 Lv.10 分化成代码猫，最后它睡着了">
+<img src="docs/demo.png" width="820" alt="Agent 干活时，食物从会话区飞向鲸鱼，连击一路涨到彩虹、开暴食、解锁成就，养到 Lv.10 分化成代码猫，最后它睡着了">
 
 <sub>一轮工具循环：连击顶到 ×3.0 开暴食 🔥×2、解锁成就、摸摸头、升到 Lv.10 变身成 🐱 代码猫，闲下来就睡了（💤）。<br>
 这张图是 <a href="docs/make-demo.mjs">docs/make-demo.mjs</a> 拿插件里同一套路径和 keyframes 画出来的，改玩法就 <code>node docs/make-demo.mjs</code> 重出一张；复核用 <code>node docs/check-demo.mjs</code>。</sub>
