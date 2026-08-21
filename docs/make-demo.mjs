@@ -22,7 +22,7 @@ import { dirname, join } from "node:path";
 //#region 时间轴
 
 /** 一圈多久（ms）。所有 keyframe 的百分比都是拿它除出来的。 */
-const CYCLE = 15000;
+const CYCLE = 18000;
 
 /** 画布尺寸：宽屏一点，左边放会话区，右下角放宠物卡片。 */
 const W = 900;
@@ -34,25 +34,40 @@ const H = 420;
  * 一轮 Agent 干活一个节奏（也正好演示了「换着口味吃不会腻」）。
  */
 const FEEDS = [
-  { at: 400, from: [436, 87], icon: "🥕", size: 22, text: "+8 🥕 · 240 tok", exp: "+1 ⭐", tier: "normal", combo: "×1.2" },
-  { at: 1000, from: [250, 133], icon: "🐟", size: 22, text: "+11 🐟 · 1.8k tok", exp: "+3 ⭐", tier: "normal", combo: "×1.4" },
-  { at: 1600, from: [240, 190], icon: "🍖", size: 22, text: "+17 🍖 · 1.2k tok", exp: "+5 ⭐", tier: "gold", combo: "×2.0" },
-  { at: 2200, from: [230, 238], icon: "🍗", size: 30, text: "+21 🍗 · 4.4k tok", exp: "+7 ⭐", tier: "gold", combo: "×2.4" },
-  { at: 2800, from: [250, 286], icon: "🍲", size: 38, text: "+26 🍲 · 12.6k tok", exp: "+9 ⭐", tier: "epic", combo: "×3.0" },
-  { at: 3400, from: [236, 334], icon: "🍖", size: 30, text: "+21 🍖 · 3.1k tok", exp: "+22 ⭐", tier: "epic", combo: "×3.0  🔥×2" }
+  { at: 400, from: [436, 87], icon: "🥕", size: 22, text: "+8 🥕 · 240 tok", exp: "+2 ⭐", tier: "normal", combo: "×1.2" },
+  { at: 1000, from: [250, 133], icon: "🐟", size: 22, text: "+11 🐟 · 1.8k tok", exp: "+4 ⭐", tier: "normal", combo: "×1.4" },
+  { at: 1600, from: [240, 190], icon: "🍖", size: 22, text: "+17 🍖 · 1.2k tok", exp: "+6 ⭐", tier: "gold", combo: "×2.0" },
+  { at: 2200, from: [230, 238], icon: "🍗", size: 30, text: "+21 🍗 · 4.4k tok", exp: "+9 ⭐", tier: "gold", combo: "×2.4" },
+  { at: 2800, from: [250, 286], icon: "🍲", size: 38, text: "+26 🍲 · 12.6k tok", exp: "+11 ⭐", tier: "epic", combo: "×3.0" },
+  { at: 3400, from: [236, 334], icon: "🍖", size: 30, text: "+21 🍖 · 3.1k tok", exp: "+24 ⭐", tier: "epic", combo: "×3.0  🔥×2" }
 ];
 
 /** 暴食 BUFF 那一段（顶到满连击开的，15s —— 这里按一圈的节奏压到 6.2s）。 */
 const FRENZY = [3400, 9600];
 
-/** 睡着那一段：最后一次互动之后没动静，闭眼、飘 Zzz、精力回得快。 */
-const SLEEP = [11000, CYCLE];
+/**
+ * 变身那一段：升到 Lv.10、编码技能又是唯一最高的那一门 → 分化成 🐱 代码猫。
+ * 1.6s，和产物的 `dshpet-morph` 一样：白光糊住 → 弹一下 → 新形态露出来。
+ * 头像在 +250ms 那一刻硬切（那时候白光是满的，切换看不见 —— 产物里也是
+ * 同一个 patch 里换掉 `pet.form`，没有淡入淡出这回事）。
+ */
+const MORPH = [10500, 12100];
+const SWAP = MORPH[0] + 250;
 
-/** 几条通知类飘字：成就 / 任务 / 摸头，都走和喂食同一条特效管道。 */
+/** 睡着那一段：最后一次互动之后没动静，闭眼、飘 Zzz、精力回得快。 */
+const SLEEP = [14200, CYCLE];
+
+/**
+ * 几条通知类飘字：成就 / 任务 / 摸头 / 进阶 / 进化，都走和喂食同一条特效管道。
+ * 「进阶 · 传说金鲸」紧接着「进化 · 代码猫」是产物的真实顺序：两件事落在同一个
+ * patch 里，所以传说金鲸那身金皮一帧都不会露出来 —— 直接就是猫。
+ */
 const NOTICES = [
   { at: 5400, text: "成就 · 满连击", tier: "epic" },
   { at: 6900, text: "任务达成 · 今日喂食 10 次", tier: "gold" },
-  { at: 8300, text: "💗 摸摸头", tier: "normal" }
+  { at: 8300, text: "💗 摸摸头", tier: "normal" },
+  { at: 10000, text: "进阶 · 传说金鲸", tier: "gold" },
+  { at: MORPH[0], text: "进化 · 代码猫", tier: "epic" }
 ];
 
 /** 台词气泡：`[进, 出, 文案]`。普通场合之间隔着 4s 以上，和限流规则一致。 */
@@ -61,15 +76,23 @@ const BUBBLES = [
   [5500, 7000, "解锁新徽章啦！"],
   [7100, 8200, "今天的活干完了～"],
   [8400, 9800, "还要摸"],
-  [11400, CYCLE - 200, "Zzz…"]
+  [MORPH[0] + 600, 13000, "我变样了！"],
+  [SLEEP[0] + 400, CYCLE - 200, "Zzz…"]
 ];
 
-/** 卡片上那行心情 / 精力：跟着剧情换三次。 */
+/** 卡片上那行心情 / 精力：跟着剧情换几次。 */
 const VITALS = [
   [0, 3400, "😐 68 · ⚡ 91"],
   [3400, 8300, "😊 78 · ⚡ 74"],
-  [8300, 11000, "😄 90 · ⚡ 66"],
-  [11000, CYCLE, "😴 86 · ⚡ 98"]
+  [8300, MORPH[0], "😄 90 · ⚡ 66"],
+  [MORPH[0], SLEEP[0], "🤩 96 · ⚡ 61"],
+  [SLEEP[0], CYCLE, "😴 86 · ⚡ 98"]
+];
+
+/** 名字行：变身前后各一版（形态名就写在这儿）。 */
+const NAMES = [
+  [0, SWAP, "深深 · Lv.9 成年"],
+  [SWAP, CYCLE, "深深 · Lv.10 代码猫"]
 ];
 
 /** 会话区里逐条冒出来的东西：食物就是从这些块上飞过来的。 */
@@ -263,6 +286,63 @@ function whale() {
 
 //#endregion
 
+//#region 代码猫
+
+/** 猫的配色，取自 `FORM_SKIN.cat` / `FORM_LINE.cat`（承着鲸鱼的蓝）。 */
+const CAT_SKIN = ["#b7c4ff", "#7b8cf0", "#4b58c4"];
+const CAT_LINE = "#39429b";
+/** 眼睛缩放：`FORMS` 里猫的 eyeGrow 是 .95。 */
+const CAT_EYE = 0.95;
+/** 头像边长：进化档 62（成年 54），所以比鲸鱼那会儿大一圈、也往左上挪一点。 */
+const CAT_SIZE = 60;
+
+/** 猫的一只眼睛（和鲸鱼同一套画法，只是缩放不同）。 */
+function catEye(cx, cy) {
+  const k = CAT_EYE;
+  return [
+    `<ellipse cx="${cx}" cy="${cy}" rx="${round(4.2 * k)}" ry="${round(5.2 * k)}" fill="${INK}"/>`,
+    `<circle cx="${round(cx - 1.3 * k)}" cy="${round(cy - 2 * k)}" r="${round(1.7 * k)}" fill="#fff"/>`,
+    `<circle cx="${round(cx + 1.2 * k)}" cy="${round(cy + 2.2 * k)}" r="${round(0.85 * k)}" fill="#fff" opacity=".75"/>`
+  ].join("");
+}
+
+/**
+ * 🐱 代码猫。路径逐字取自 `FORMS[0].art`（猫那一份），层序也照抄
+ * `WhaleAvatar`：尾 → 爪 → 耳 → 身 → 肚皮/高光 → 鼻须 → 腮红 → 眼 → 嘴。
+ * 只画得着的两张脸：平时 + 睡脸（星星眼那一段它还是鲸鱼）。
+ */
+function cat() {
+  return `<svg class="whale" x="${AVATAR_XY[0] - 3}" y="${AVATAR_XY[1] - 3}" width="${CAT_SIZE}" height="${CAT_SIZE}" viewBox="0 0 64 64" overflow="visible">
+  <g class="w-body">
+    <path class="w-tail" d="M43.4 50.6C50.6 51.6 55.4 45.2 54.2 38.2C53.6 34.6 49.4 35 49.8 38.4C50.4 43.2 47.4 46.8 42.4 45.8Z" fill="url(#skin-cat)" stroke="${CAT_LINE}" stroke-width="1.1"/>
+    <path class="w-fin" d="M23.6 53.6C23.6 50.4 29.4 50.4 29.4 53.6C29.4 56.4 23.6 56.4 23.6 53.6ZM34.6 53.6C34.6 50.4 40.4 50.4 40.4 53.6C40.4 56.4 34.6 56.4 34.6 53.6Z" fill="${CAT_SKIN[2]}" stroke="${CAT_LINE}" stroke-width="1.1"/>
+    <path d="M17.6 20.4 16.4 5.6 30.4 13.6Z" fill="url(#skin-cat)" stroke="${CAT_LINE}" stroke-width="1.1"/>
+    <path d="M46.4 20.4 47.6 5.6 33.6 13.6Z" fill="url(#skin-cat)" stroke="${CAT_LINE}" stroke-width="1.1"/>
+    <path d="M20 18.6 19.2 9.8 27 14.4Z" fill="#f7c6d9" stroke="${CAT_LINE}" stroke-width=".8"/>
+    <path d="M44 18.6 44.8 9.8 37 14.4Z" fill="#f7c6d9" stroke="${CAT_LINE}" stroke-width=".8"/>
+    <ellipse cx="32" cy="46" rx="13" ry="11" fill="url(#skin-cat)" stroke="${CAT_LINE}" stroke-width="1.2"/>
+    <ellipse cx="32" cy="28" rx="16" ry="14" fill="url(#skin-cat)" stroke="${CAT_LINE}" stroke-width="1.2"/>
+    <path d="M21.4 45.6C25.6 41.6 38.4 41.6 42.6 45.6A13 11 0 0 1 21.4 45.6Z" fill="url(#belly)"/>
+    <ellipse cx="24" cy="19.6" rx="6.2" ry="3" fill="#ffffff" opacity=".3" transform="rotate(-24 24 19.6)"/>
+    <path d="M30.6 34.6H33.4L32 36.4Z" fill="${INK}"/>
+    <path d="M14.6 32.4 22 34.2M14.8 37 22.2 36.8M49.4 32.4 42 34.2M49.2 37 41.8 36.8" fill="none" stroke="${INK}" stroke-width="1" stroke-linecap="round" opacity=".55"/>
+    <g class="w-blush" opacity=".5">
+      <ellipse cx="20.6" cy="34.2" rx="3.4" ry="2" fill="#ff86ac"/>
+      <ellipse cx="43.4" cy="34.2" rx="3.4" ry="2" fill="#ff86ac"/>
+    </g>
+    <g class="v v-cat-calm"><g class="w-eyes">${catEye(25, 28)}${catEye(39, 28)}</g></g>
+    <g class="v v-cat-shut">
+      <path d="M21.4 28C23.4 31.2 27.4 31.2 29.4 28" fill="none" stroke="${INK}" stroke-width="1.5" stroke-linecap="round"/>
+      <path d="M34.6 28C36.6 31.2 40.6 31.2 42.6 28" fill="none" stroke="${INK}" stroke-width="1.5" stroke-linecap="round"/>
+    </g>
+    <path class="v v-cat-calm w-mouth" d="M28.2 37.2C29.6 39.6 32 39.6 32 37.6C32 39.6 34.4 39.6 35.8 37.2" fill="none" stroke="${INK}" stroke-width="1.5" stroke-linecap="round"/>
+    <path class="v v-cat-shut" d="M29.4 38C30.6 38 33.4 38 34.6 38" fill="none" stroke="${INK}" stroke-width="1.5" stroke-linecap="round"/>
+  </g>
+</svg>`;
+}
+
+//#endregion
+
 //#region 组装
 
 /** 会话区那一列：逐条冒出来的消息 / 工具结果块。 */
@@ -345,10 +425,19 @@ function petCard() {
     rx: 14, stroke: "rgba(255,159,67,.75)", strokeWidth: 1.6, cls: "v v-frenzy",
     extra: 'filter="url(#warmglow)"'
   }));
-  out.push(`<g class="avatar">${whale()}</g>`);
+  // 头像：变身前是鲸鱼，变身后是猫。两只都画在里面，靠可见性硬切。
+  out.push(`<g class="avatar"><g class="v v-whale">${whale()}</g><g class="v v-cat">${cat()}</g></g>`);
+  // 变身那一下的白光 + 光环（照抄 `.dshpet-morph`：inset -16px 的一圈）。
+  const mc = [TARGET[0], AVATAR_XY[1] + AVATAR / 2];
+  out.push(`<g class="v v-morph">`);
+  out.push(`<circle class="morph-flash" cx="${mc[0]}" cy="${mc[1]}" r="${AVATAR / 2 + 16}" fill="url(#flash)"/>`);
+  out.push(`<circle class="morph-ring" cx="${mc[0]}" cy="${mc[1]}" r="${AVATAR / 2 + 16}" fill="none" stroke="rgba(255,255,255,.9)" stroke-width="2"/>`);
+  out.push(`</g>`);
   out.push(`<g class="v v-zzz-wrap"><text class="zzz" x="${AVATAR_XY[0] + AVATAR - 6}" y="${AVATAR_XY[1] + 2}" font-size="14">💤</text></g>`);
 
-  out.push(text(META_X, nameY, "深深 · Lv.6 成年", { size: 12, weight: 600 }));
+  for (const [i, [, , line]] of NAMES.entries()) {
+    out.push(text(META_X, nameY, line, { size: 12, weight: 600, cls: `v v-name${i}` }));
+  }
   out.push(text(META_X, subY, "消耗 22.6k · 🥕2.1k 🐟8.0k 🍖12.5k", { size: 10, fill: "#a9a9b2" }));
   for (const [i, [, , line]] of VITALS.entries()) {
     out.push(text(META_X, vitalsY, line, { size: 11, fill: "#a9a9b2", cls: `v v-vit${i}` }));
@@ -453,6 +542,11 @@ function css() {
     parts.push(window_(`k-vit${i}`, from, to, 140));
     parts.push(`.v-vit${i}{animation:k-vit${i} ${CYCLE}ms linear infinite}`);
   }
+  // 名字行：形态名跟着头像一起换，所以是硬切（fade 1ms），不然两行字会糊在一起。
+  for (const [i, [from, to]] of NAMES.entries()) {
+    parts.push(window_(`k-name${i}`, from, to, 1));
+    parts.push(`.v-name${i}{animation:k-name${i} ${CYCLE}ms linear infinite}`);
+  }
   parts.push(window_("k-frenzy", FRENZY[0], FRENZY[1], 220));
   parts.push(`.v-frenzy{animation:k-frenzy ${CYCLE}ms linear infinite}`);
   parts.push(window_("k-badge-new", NOTICES[0].at + 200, CYCLE, 240));
@@ -492,6 +586,38 @@ function css() {
   parts.push(`.zzz{animation:k-zzz-drift 2.6s ease-in-out infinite}`);
   parts.push(`@keyframes k-zzz-drift{0%{opacity:0;transform:translate(0,2px) scale(.8)}30%{opacity:1}100%{opacity:0;transform:translate(4px,-10px) scale(1.1)}}`);
 
+  // ---- 变身：鲸鱼 / 猫硬切，白光 + 光环 1.6s 走一遍。
+  // 切换点埋在白光最浓那一刻（SWAP），所以看不见「一只变两只」的过渡帧。
+  parts.push(window_("k-whale", 0, SWAP, 1));
+  parts.push(`.v-whale{animation:k-whale ${CYCLE}ms linear infinite}`);
+  parts.push(window_("k-cat", SWAP, CYCLE, 1));
+  parts.push(`.v-cat{animation:k-cat ${CYCLE}ms linear infinite}`);
+  // 猫只有两张脸用得上：平时 + 睡脸（星星眼那一段它还是鲸鱼）。
+  parts.push(window_("k-cat-calm", SWAP, SLEEP[0], 1));
+  parts.push(`.v-cat-calm{animation:k-cat-calm ${CYCLE}ms linear infinite}`);
+  parts.push(window_("k-cat-shut", SLEEP[0], CYCLE, 200));
+  parts.push(`.v-cat-shut{animation:k-cat-shut ${CYCLE}ms linear infinite}`);
+  parts.push(window_("k-morph", MORPH[0], MORPH[1], 1));
+  parts.push(`.v-morph{animation:k-morph ${CYCLE}ms linear infinite}`);
+  // 照抄 `@keyframes dshpet-morph`：0% 白到底 → 25% 涨过头 → 50% 白光退掉
+  // （这时候露出来的已经是猫）→ 100% 光环散尽。
+  parts.push(keyframes("k-flash", [
+    [0, "opacity:0;transform:scale(.85)"],
+    [MORPH[0], "opacity:1;transform:scale(.85)"],
+    [MORPH[0] + 400, "opacity:1;transform:scale(1.15)"],
+    [MORPH[0] + 800, "opacity:0;transform:scale(1.25)"],
+    [CYCLE, "opacity:0"]
+  ]));
+  parts.push(`.morph-flash{transform-box:fill-box;transform-origin:center;animation:k-flash ${CYCLE}ms linear infinite}`);
+  parts.push(keyframes("k-ring", [
+    [0, "opacity:0;transform:scale(.85)"],
+    [MORPH[0], "opacity:1;transform:scale(.85)"],
+    [MORPH[0] + 400, "opacity:1;transform:scale(1.15)"],
+    [MORPH[1], "opacity:0;transform:scale(1.7)"],
+    [CYCLE, "opacity:0"]
+  ]));
+  parts.push(`.morph-ring{transform-box:fill-box;transform-origin:center;animation:k-ring ${CYCLE}ms linear infinite}`);
+
   // ---- 卡片压暗（睡着）。
   parts.push(keyframes("k-dim", [
     [0, "opacity:1"],
@@ -513,6 +639,11 @@ function css() {
   bounce.push([NOTICES[2].at + 120, "transform:scale(1)"]);
   bounce.push([NOTICES[2].at + 240, "transform:scale(1.12) rotate(2deg)"]);
   bounce.push([NOTICES[2].at + 400, "transform:scale(1)"]);
+  // 变身那一下的缩放（`dshpet-morph-pop`：.85 → 1.15 → 1）。产物里它和进食的
+  // 弹跳挂在同一个元素上，所以这里也是同一条 keyframes —— 变身赢。
+  bounce.push([MORPH[0], "transform:scale(.85)"]);
+  bounce.push([MORPH[0] + 400, "transform:scale(1.15)"]);
+  bounce.push([MORPH[0] + 800, "transform:scale(1)"]);
   bounce.push([CYCLE, "transform:scale(1)"]);
   parts.push(keyframes("k-bounce", bounce));
   parts.push(`.avatar{animation:k-bounce ${CYCLE}ms linear infinite}`);
@@ -525,11 +656,14 @@ function css() {
     [CYCLE, 0.82]
   ]));
   parts.push(`.g-full{transform-box:fill-box;transform-origin:left center;animation:k-full ${CYCLE}ms linear infinite}`);
+  // 经验条在 Lv.10 那一下满上去，然后清零重新开始（升级就是这么算的）。
   parts.push(barKeyframes("k-exp", [
     [0, 0.18],
     ...FEEDS.map((f, i) => [f.at + 600, 0.24 + i * 0.09]),
     [NOTICES[1].at, 0.86],
-    [CYCLE, 0.9]
+    [NOTICES[3].at, 1],
+    [NOTICES[3].at + 60, 0.05],
+    [CYCLE, 0.12]
   ]));
   parts.push(`.g-exp{transform-box:fill-box;transform-origin:left center;animation:k-exp ${CYCLE}ms linear infinite}`);
 
@@ -549,7 +683,10 @@ function css() {
 
   // ---- 尊重「减少动效」：停在第一帧，图还看得懂。
   // 停下来的时候要停在「顶格那一帧」：满连击、星星眼、暖橙边、六条消息都在。
-  const still = [".v-combo5", ".v-eyes-star", ".v-mouth-o", ".v-frenzy", ".v-spout", ".v-vit1", ".v-bub0"]
+  // `.v-whale` / `.v-name0` 也得点亮：它们现在也是可见性窗口驱动的，漏了就是
+  // 一张没有宠物、也没有名字的空卡片。
+  const still = [".v-combo5", ".v-eyes-star", ".v-mouth-o", ".v-frenzy", ".v-spout", ".v-vit1", ".v-bub0",
+    ".v-whale", ".v-name0"]
     .concat(MESSAGES.map((_, i) => `.v-msg${i}`))
     .join(",");
   parts.push(
@@ -577,12 +714,19 @@ function barKeyframes(name, points) {
 
 /** 拼出整张 SVG。 */
 function build() {
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" role="img" aria-label="deepseek-pet 演示：Agent 干活喂鲸鱼，连击顶格开暴食，解锁成就，摸摸头，然后它睡了">
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${W} ${H}" width="${W}" height="${H}" role="img" aria-label="deepseek-pet 演示：Agent 干活喂鲸鱼，连击顶格开暴食，解锁成就，摸摸头，升到 Lv.10 分化成代码猫，然后它睡了">
   <title>deepseek-pet — Agent 干活就是在喂它</title>
   <defs>
     <linearGradient id="skin" x1="0" y1="0" x2="0" y2="1">
       <stop offset="0" stop-color="${SKIN[0]}"/><stop offset=".55" stop-color="${SKIN[1]}"/><stop offset="1" stop-color="${SKIN[2]}"/>
     </linearGradient>
+    <linearGradient id="skin-cat" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="${CAT_SKIN[0]}"/><stop offset=".55" stop-color="${CAT_SKIN[1]}"/><stop offset="1" stop-color="${CAT_SKIN[2]}"/>
+    </linearGradient>
+    <radialGradient id="flash">
+      <stop offset="0" stop-color="#ffffff" stop-opacity=".95"/>
+      <stop offset=".72" stop-color="#ffffff" stop-opacity="0"/>
+    </radialGradient>
     <linearGradient id="belly" x1="0" y1="0" x2="0" y2="1">
       <stop offset="0" stop-color="#ffffff" stop-opacity=".92"/><stop offset="1" stop-color="#d7e2ff" stop-opacity=".85"/>
     </linearGradient>

@@ -154,14 +154,22 @@ const assistantEvent = outputTokens => ({
   data: { turn: 1, step: 1, message: { role: 'assistant' }, usage: { inputTokens: 0, outputTokens } },
 })
 
+/** tool/result 的 message.content —— 产物就是照它的 JSON 长度估 token 的。 */
+const toolContentOf = size => [
+  { type: 'tool-result', toolCallId: 'c1', content: [{ type: 'text', text: 'x'.repeat(size) }] },
+]
+
 /** 造一条 tool/result 事件。 */
 const toolEvent = size => ({
   type: 'tool/result', seq: ++seq, time: now(),
-  data: {
-    turn: 1, step: 1,
-    message: { role: 'user', content: [{ type: 'tool-result', toolCallId: 'c1', content: [{ type: 'text', text: 'x'.repeat(size) }] }] },
-  },
+  data: { turn: 1, step: 1, message: { role: 'user', content: toolContentOf(size) } },
 })
+
+/**
+ * 照抄产物 classify 里的 token 估算：tool/result 按 content 的 JSON 字节数折半。
+ * 别在断言里写死数字 —— 这个系数是要调的，写死了每次调都得改一排期望值。
+ */
+const toolTokensOf = size => Math.max(1, Math.ceil(Buffer.byteLength(JSON.stringify(toolContentOf(size)), 'utf8') / 2))
 
 /** 把一条事件送进某份 Definition，模拟引擎的 match → start。 */
 function dispatchVia(definition, event) {
@@ -343,35 +351,46 @@ assert.equal(food.props['data-flight'], 'across')
 assert.match(food.props.style['--dshpet-dx'], /^-\d+px$/)
 assert.equal(food.props.style['--dshpet-dy'], '-75px')
 
-// 头像是内联 SVG 的二次元鲸鱼；epic 连击时换星星眼 + 闪光。
+/** 鲸鱼底座精灵的文件名（APNG 版没有嘴型/部件节点，用 data-sprite 区分状态）。 */
+const srcOf = whale => {
+  const img = findNode(whale, n => n.props && Object.prototype.hasOwnProperty.call(n.props, 'data-sprite'))
+  return img ? img.props['data-sprite'] : ''
+}
+/** 鲸鱼底座 img 的无障碍名（aria-label 在 img 上，不在叠加容器上）。 */
+const ariaOf = whale => {
+  const img = findNode(whale, n => n.props && Object.prototype.hasOwnProperty.call(n.props, 'data-sprite'))
+  return img ? img.props['aria-label'] : ''
+}
+
+// 头像是 APNG 精灵的二次元鲸鱼；epic 连击时切到兴奋态动图。
 const avatar = findNode(tree, n => n.props?.className === 'dshpet-avatar')
 assert.ok(avatar !== null, '头像应当在渲染树里')
 const whaleEl = findNode(avatar, n => typeof n.type === 'function')
 assert.ok(whaleEl !== null, 'petAvatar=whale 时头像里应当是组件而不是 emoji')
 assert.equal(whaleEl.props.tier, 'epic', '此刻应当是 epic 连击')
 const whale = whaleEl.type(whaleEl.props)
-assert.equal(whale.type, 'svg')
-assert.equal(whale.props.className, 'dshpet-whale')
-// 喷水柱 / 背鳍 / 王冠是按等级形态开关的（此刻是 Lv.1~2 幼崽，还不会喷水），
-// 所以不在这个"恒在"清单里 —— 它们在文末的「等级形态」小节逐档断言。
-for (const cls of ['dshpet-whale-body', 'dshpet-whale-tail', 'dshpet-whale-fin',
-  'dshpet-whale-eyes', 'dshpet-whale-mouth', 'dshpet-whale-blush']) {
-  assert.ok(findNode(whale, n => n.props?.className === cls) !== null, `缺部件: ${cls}`)
+assert.equal(whale.type, 'span', 'APNG 版头像是一个叠加容器')
+assert.equal(whale.props.className, 'dshpet-avatar-stack')
+// 底座 + eat/pat 三层 img 都在，且都有对应样式（APNG 自带浮沉循环动画）。
+for (const cls of ['dshpet-whale-sprite', 'dshpet-sprite-eat', 'dshpet-sprite-pat']) {
+  assert.ok(
+    findNode(whale, n => typeof n.props?.className === 'string' && n.props.className.includes(cls)) !== null,
+    `缺精灵层: ${cls}`,
+  )
   assert.ok(CSS_TEXT.includes('.' + cls), `${cls} 没有对应样式`)
 }
 assert.ok(
-  findNode(whale, n => n.props?.className === 'dshpet-whale-sparkle') !== null,
-  'epic 时应当有闪光',
+  srcOf(whale).indexOf('-excited.apng') !== -1,
+  'epic 时底座应当是兴奋态动图',
 )
 const calmWhale = whaleEl.type({ tier: 'normal' })
 assert.equal(
-  findNode(calmWhale, n => n.props?.className === 'dshpet-whale-sparkle'), null,
-  'normal 时不应当有闪光',
+  srcOf(calmWhale).indexOf('-excited.apng') !== -1, false,
+  'normal 时不该是兴奋态',
 )
 assert.notEqual(
-  findNode(calmWhale, n => n.props?.className === 'dshpet-whale-mouth').props.d,
-  findNode(whale, n => n.props?.className === 'dshpet-whale-mouth').props.d,
-  'epic 的嘴型应当和平时不同',
+  srcOf(calmWhale), srcOf(whale),
+  'epic 的动图应当和平时不同',
 )
 
 // 没有会话打开（量不到锚点）时退回策划原本的就地飞入，而不是飞到屏幕外。
@@ -532,7 +551,6 @@ const totalExp = pet => (pet.level - 1) * pet.level / 2 * 100 + pet.exp
 /** 饱食条 / 鲸鱼嘴型：饿了的警告要断言到具体节点上。 */
 const cardOf = component => findNode(component({}), n => n.props?.className === 'dshpet-card')
 const fullBarOf = card => findNode(card, n => n.props?.className === 'dshpet-bar dshpet-bar-full')
-const mouthOf = whale => findNode(whale, n => n.props?.className === 'dshpet-whale-mouth').props.d
 
 // 把会话锚点装回来（前面测就地飞入时置成了 null）：这样「零食不从会话区飞」
 // 才是个有意义的断言，而不是恰好赶上了量不到锚点的退路。
@@ -618,8 +636,12 @@ try {
   const hungryWhaleEl = findNode(hungryCard, n => typeof n.type === 'function')
   assert.equal(hungryWhaleEl.props.hungry, true, '饿了应当把状态传给鲸鱼')
   assert.notEqual(
-    mouthOf(hungryWhaleEl.type(hungryWhaleEl.props)), mouthOf(calmWhale),
-    '饿脸的嘴型应当和平时不同',
+    srcOf(hungryWhaleEl.type(hungryWhaleEl.props)), srcOf(calmWhale),
+    '饿脸应当切换到 hungry 态动图',
+  )
+  assert.ok(
+    srcOf(hungryWhaleEl.type(hungryWhaleEl.props)).indexOf('-hungry.apng') !== -1,
+    '饿脸应当用 hungry 态动图',
   )
   assert.ok(CSS_TEXT.includes('.dshpet-card[data-hungry=true]'), '饿了的卡片没有对应样式')
   assert.ok(CSS_TEXT.includes('.dshpet-bar-full[data-low=true]'), '变红的饱食条没有对应样式')
@@ -658,28 +680,40 @@ const savedRaw = fakeLocalStorage.getItem(STATE_KEY)
 assert.ok(savedRaw !== null, 'pagehide 时应当把进度写进 localStorage')
 const savedDoc = JSON.parse(savedRaw)
 const live = overlayState()
-assert.equal(savedDoc.v, 1, '存档应当带版本号')
+assert.equal(savedDoc.v, 2, '存档应当带版本号')
 assert.equal(typeof savedDoc.savedAt, 'number', '存档应当带时间戳')
-assert.equal(savedDoc.pet.level, live.pet.level)
-assert.equal(savedDoc.pet.hunger, live.pet.hunger)
-assert.equal(savedDoc.pet.exp, live.pet.exp)
-assert.equal(savedDoc.totalFeeds, live.totalFeeds)
-assert.equal(savedDoc.totalTokens, live.totalTokens)
-assert.deepEqual(savedDoc.tokensBySource, live.tokensBySource)
-assert.equal(savedDoc.snacks, live.snacks, '零食格数也要落盘，否则刷新就是白送 5 格')
-// 转瞬即逝的东西不该进存档，形象也不该（那是配置说了算）。
+// v2 格式：宠物数据在 savedDoc.pets[activePetId] 里
+const savedPetRec = savedDoc.pets[savedDoc.activePetId]
+assert.ok(savedPetRec, '存档应当有活跃宠物记录')
+assert.equal(savedPetRec.pet.level, live.pet.level)
+assert.equal(savedPetRec.pet.hunger, live.pet.hunger)
+assert.equal(savedPetRec.pet.exp, live.pet.exp)
+assert.equal(savedPetRec.totalFeeds, live.totalFeeds)
+assert.equal(savedPetRec.totalTokens, live.totalTokens)
+assert.deepEqual(savedPetRec.tokensBySource, live.tokensBySource)
+assert.equal(savedPetRec.snacks, live.snacks, '零食格数也要落盘，否则刷新就是白送 5 格')
+// 转瞬即逝的东西不该进存档
 assert.equal(savedDoc.effects, undefined, 'effects 不该进存档')
 assert.equal(savedDoc.comboCount, undefined, 'combo 不该进存档')
-assert.equal(savedDoc.pet.name, undefined, '名字跟配置走，不进存档')
 
 // 别的标签页写了新存档 → 本标签页跟着走（同一个 localStorage，后写为准）。
 fireWindow('storage', {
   key: STATE_KEY,
   newValue: JSON.stringify({
-    v: 1, savedAt: Date.now(),
-    pet: { hunger: 42, exp: 7, level: 9, mood: 80, energy: 75 },
-    totalFeeds: 99, totalTokens: 88888, snacks: 2,
-    tokensBySource: { user_input: 1, generation: 2, tool_result: 3 },
+    v: 2, savedAt: Date.now(),
+    activePetId: 'pet-0', favorites: [],
+    pets: { 'pet-0': {
+      id: 'pet-0', species: 'whale', name: '深深', avatar: 'whale', icon: '🐳', bornAt: Date.now(),
+      pet: { hunger: 42, exp: 7, level: 9, mood: 80, energy: 75, curiosity: 0, pride: 0, concern: 0, form: '' },
+      totalFeeds: 99, totalTokens: 88888, snacks: 2,
+      tokensBySource: { user_input: 1, generation: 2, tool_result: 3 },
+      achievements: [], daily: { day: 0, feeds: 0, tools: 0, bestCombo: 0, done: [] },
+      streakDay: 0, streakCount: 0, pats: 0, pos: { dx: 0, dy: 0 }, lastFeedAt: 0,
+      skills: { coding: { xp: 0, level: 0 }, research: { xp: 0, level: 0 }, debug: { xp: 0, level: 0 }, writing: { xp: 0, level: 0 } },
+      memory: { files: [], tools: [], hours: new Array(24).fill(0), bornDay: 0, errors: 0, recoveries: 0 }
+    }},
+    eggs: [],
+    global: { totalTokensAllTime: 88888, totalFeedsAllTime: 99, achievementsUnlockedAllTime: 0, petsHatched: 1, eggsObtained: [] }
   }),
 })
 const synced = overlayState()
@@ -688,7 +722,7 @@ assert.equal(synced.totalTokens, 88888)
 assert.equal(synced.snacks, 2, '零食格数也跟着别的标签页走')
 assert.equal(synced.pet.name, '深深', '名字仍然来自配置，不被存档覆盖')
 // 无关的键、坏数据、removeItem（newValue = null）都不该动状态。
-fireWindow('storage', { key: 'unrelated', newValue: '{"v":1}' })
+fireWindow('storage', { key: 'unrelated', newValue: '{"v":2}' })
 fireWindow('storage', { key: STATE_KEY, newValue: '{oops' })
 fireWindow('storage', { key: STATE_KEY, newValue: null })
 assert.equal(overlayState().pet.level, 9, '无效的 storage 事件不该改状态')
@@ -834,13 +868,8 @@ function stageCase(level, exp = 0) {
   }
 }
 
-/** 皮肤渐变的第一个 stop —— 四档配色互不相同，拿它当指纹。 */
-const skinOf = whale => findNode(whale, n => n.props?.id === 'dshpet-whale-skin')
-  .children[0].props.stopColor
-/** 身体椭圆的描边：只有传说档是金色。 */
-const bodyStrokeOf = whale => findNode(whale, n => n.type === 'ellipse' && n.props?.cx === 29)
-  .props.stroke
-const partOf = (whale, cls) => findNode(whale, n => n.props?.className === cls)
+/** 底座精灵图即档位指纹：四档文件名各不相同（APNG 版无皮肤渐变/描边节点）。 */
+const stageImgOf = whale => srcOf(whale)
 
 const STAGES = [
   { level: 1, key: 'baby', label: '幼崽', spout: false, dorsal: false, crown: false },
@@ -860,36 +889,27 @@ for (const stage of STAGES) {
     `Lv.${stage.level} 的名字行不对: ${got.name}`,
   )
   assert.match(
-    got.whale.props['aria-label'], new RegExp(stage.label),
+    ariaOf(got.whale), new RegExp(stage.label),
     `Lv.${stage.level} 的 aria-label 应当写着形态名`,
   )
-  // 体型走头像边长（路径坐标一个不动），viewBox 四档都一样。
-  assert.equal(got.whale.props.viewBox, '0 0 64 64', 'viewBox 不该跟着形态变')
+  // 体型走头像边长；APNG 版没有 viewBox，改为断言正方形尺寸。
+  const img = findNode(got.whale, n => n.props && Object.prototype.hasOwnProperty.call(n.props, 'data-sprite'))
   assert.equal(
-    got.whale.props.style.height, got.whale.props.style.width, '头像应当是正方形',
+    img.props.style.height, img.props.style.width, '头像应当是正方形',
   )
-  sizes.push(Number.parseInt(got.whale.props.style.width, 10))
-  seenSkin.add(skinOf(got.whale))
-  assert.equal(
-    partOf(got.whale, 'dshpet-whale-spout') !== null, stage.spout,
-    `${stage.label} 的喷水柱该有/该没有`,
+  sizes.push(Number.parseInt(img.props.style.width, 10))
+  seenSkin.add(stageImgOf(got.whale))
+  // 底座动图应当是本档文件（baby/young/adult/legend 各不同）。
+  assert.ok(
+    stageImgOf(got.whale).indexOf('-'.concat(stage.key, '-')) !== -1,
+    `${stage.label} 的底座动图应当是 ${stage.key} 档`,
   )
-  assert.equal(
-    partOf(got.whale, 'dshpet-whale-dorsal') !== null, stage.dorsal,
-    `${stage.label} 的背鳍该有/该没有`,
-  )
-  assert.equal(
-    partOf(got.whale, 'dshpet-whale-crown') !== null, stage.crown,
-    `${stage.label} 的王冠该有/该没有`,
-  )
-  assert.equal(
-    bodyStrokeOf(got.whale) === '#2b3f9e', !stage.crown,
-    `只有传说档的描边该是金色（${stage.label}）`,
-  )
-  // 恒在的部件一档也不能少（前面那个清单只跑了幼崽这一档）。
-  for (const cls of ['dshpet-whale-body', 'dshpet-whale-tail', 'dshpet-whale-fin',
-    'dshpet-whale-eyes', 'dshpet-whale-mouth', 'dshpet-whale-blush']) {
-    assert.ok(partOf(got.whale, cls) !== null, `${stage.label} 缺部件: ${cls}`)
+  // 每档都必须有完整的三层 img（底座 + eat/pat 叠加）。
+  for (const cls of ['dshpet-whale-sprite', 'dshpet-sprite-eat', 'dshpet-sprite-pat']) {
+    assert.ok(
+      findNode(got.whale, n => typeof n.props?.className === 'string' && n.props.className.includes(cls)) !== null,
+      `${stage.label} 缺精灵层: ${cls}`,
+    )
   }
 }
 // 体型必须一档比一档大，而且拉得开 —— 差几个像素等于没变（这一条是「区分度
@@ -1032,8 +1052,12 @@ try {
   const sleepWhaleEl = findNode(sleepCard, n => typeof n.type === 'function')
   assert.equal(sleepWhaleEl.props.asleep, true, '睡着应当把状态传给鲸鱼')
   assert.notEqual(
-    mouthOf(sleepWhaleEl.type(sleepWhaleEl.props)), mouthOf(calmWhale),
-    '睡脸的嘴型应当和平时不同',
+    srcOf(sleepWhaleEl.type(sleepWhaleEl.props)), srcOf(calmWhale),
+    '睡脸应当切换到 sleep 态动图',
+  )
+  assert.ok(
+    srcOf(sleepWhaleEl.type(sleepWhaleEl.props)).indexOf('-sleep.apng') !== -1,
+    '睡脸应当用 sleep 态动图',
   )
   assert.ok(CSS_TEXT.includes('.dshpet-card[data-asleep=true]'), '睡着的卡片没有对应样式')
   assert.ok(CSS_TEXT.includes('.dshpet-zzz'), 'Zzz 没有对应样式')
@@ -1235,13 +1259,14 @@ try {
   // 长期积累要落盘（徽章 / 当天进度 / 连续到访 / 摸头次数 / 位置 / 最后互动时刻）。
   fireWindow('pagehide')
   const questSaved = JSON.parse(fakeLocalStorage.getItem(STATE_KEY))
-  assert.deepEqual(questSaved.achievements, ['first_feed', 'streak_3'], '徽章要落盘')
-  assert.equal(questSaved.daily.feeds, 10, '当天的任务进度要落盘')
-  assert.deepEqual(questSaved.daily.done, ['feeds'])
-  assert.equal(questSaved.streakCount, 3, '连续到访要落盘')
-  assert.equal(questSaved.streakDay, today)
-  assert.equal(typeof questSaved.pats, 'number', '摸头次数要落盘（有条成就看它）')
-  assert.equal(typeof questSaved.lastFeedAt, 'number', '睡眠是从它算出来的，也要落盘')
+  const questRec = questSaved.pets[questSaved.activePetId]
+  assert.deepEqual(questRec.achievements, ['first_feed', 'streak_3'], '徽章要落盘')
+  assert.equal(questRec.daily.feeds, 10, '当天的任务进度要落盘')
+  assert.deepEqual(questRec.daily.done, ['feeds'])
+  assert.equal(questRec.streakCount, 3, '连续到访要落盘')
+  assert.equal(questRec.streakDay, today)
+  assert.equal(typeof questRec.pats, 'number', '摸头次数要落盘（有条成就看它）')
+  assert.equal(typeof questRec.lastFeedAt, 'number', '睡眠是从它算出来的，也要落盘')
   assert.equal(questSaved.buff, undefined, 'BUFF 是瞬时态，不该进存档')
   assert.equal(questSaved.bubble, undefined, '台词同理')
 
@@ -1350,8 +1375,9 @@ try {
 
   // 位置落盘：松手那一下就存，重启后还在那儿。
   fireWindow('pagehide')
+  const posSaved = JSON.parse(fakeLocalStorage.getItem(STATE_KEY))
   assert.deepEqual(
-    JSON.parse(fakeLocalStorage.getItem(STATE_KEY)).pos, { dx: -40, dy: -70 },
+    posSaved.pets[posSaved.activePetId].pos, { dx: -40, dy: -70 },
     '拖过的位置应当落盘',
   )
   assert.deepEqual(
@@ -1402,12 +1428,15 @@ try {
     daily: ALL_QUESTS, streakDay: dayIndexOf(T3), streakCount: 1, lastFeedAt: T3,
   }
 
-  /** 照抄产物的经验公式：连击倍率 × 心情摆幅 × 困了打折 × 暴食双倍。 */
+  /**
+   * 照抄产物的经验公式：连击倍率 × 心情摆幅 × 困了打折 × 暴食双倍，
+   * 再加一份「这一口有多大」的封顶奖励（最多 +2，大 token 的一口更值钱）。
+   */
   const BASE_EXP = { user_input: 1, generation: 2, tool_result: 3 }
   const vitalFactor = pet => (0.8 + 0.4 * (pet.mood / 100)) * (pet.energy < 25 ? 0.85 : 1)
-  const expOf = (source, pet, combo, frenzy) => Math.max(1, Math.floor(
+  const expOf = (source, pet, combo, frenzy, tokens) => Math.max(1, Math.floor(
     BASE_EXP[source] * (1 + 0.2 * combo) * vitalFactor(pet) * (frenzy ? 2 : 1) + 0.5,
-  ))
+  )) + Math.min(2, Math.round(0.3 * Math.log2(1 + tokens / 60)))
   /** 照抄产物的食物公式：token 曲线 × 口味系数 × 暴食加成 + 连击常数。 */
   const foodOf = (tokens, combo, taste, frenzy) => Math.min(30, Math.max(1,
     Math.round(Math.floor(2.5 * Math.log2(1 + tokens / 60) + 0.5) * taste * (frenzy ? 1.2 : 1))
@@ -1434,17 +1463,17 @@ try {
   for (let i = 0; i < 8; i += 1) hit = eatOne(toolEvent(4000))
   assert.equal(hit.combo, 8, '八口应当攒到 8 连击')
   assert.equal(
-    hit.fx.foodAmount, foodOf(1000, 8, 1.3, false),
+    hit.fx.foodAmount, foodOf(toolTokensOf(4000), 8, 1.3, false),
     `最爱的一口应当有 1.3 倍加成，实际 ${hit.fx.foodAmount}`,
   )
   assert.equal(
-    hit.fx.expAmount, expOf('tool_result', hit.pre.pet, 8, false),
+    hit.fx.expAmount, expOf('tool_result', hit.pre.pet, 8, false, toolTokensOf(4000)),
     `经验应当带上心情摆幅，实际 ${hit.fx.expAmount}`,
   )
   // 第 9 口同一种就腻了：1.3 × 0.75，比刚才少。
   const bored = eatOne(toolEvent(4000))
   assert.equal(
-    bored.fx.foodAmount, foodOf(1000, 9, 1.3 * 0.75, false),
+    bored.fx.foodAmount, foodOf(toolTokensOf(4000), 9, 1.3 * 0.75, false),
     `连着吃第 9 口应当腻了，实际 ${bored.fx.foodAmount}`,
   )
   assert.ok(
@@ -1460,7 +1489,7 @@ try {
     `换了口味口味系数应当回到 1，实际 ${other.fx.foodAmount}`,
   )
   assert.equal(
-    other.fx.expAmount, expOf('generation', other.pre.pet, 10, false),
+    other.fx.expAmount, expOf('generation', other.pre.pet, 10, false, 1000),
     '开 BUFF 那一口自己还没享受双倍',
   )
 
@@ -1481,15 +1510,15 @@ try {
   const inBuff = eatOne(toolEvent(4000))
   assert.equal(inBuff.frenzy, true, 'BUFF 还在')
   assert.equal(
-    inBuff.fx.expAmount, expOf('tool_result', inBuff.pre.pet, 10, true),
+    inBuff.fx.expAmount, expOf('tool_result', inBuff.pre.pet, 10, true, toolTokensOf(4000)),
     `暴食期间经验应当双倍，实际 ${inBuff.fx.expAmount}`,
   )
   assert.ok(
-    inBuff.fx.expAmount >= expOf('tool_result', inBuff.pre.pet, 10, false) * 1.8,
+    inBuff.fx.expAmount >= expOf('tool_result', inBuff.pre.pet, 10, false, toolTokensOf(4000)) * 1.8,
     '双倍必须真的翻上去',
   )
   assert.equal(
-    inBuff.fx.foodAmount, foodOf(1000, 10, 1.3, true),
+    inBuff.fx.foodAmount, foodOf(toolTokensOf(4000), 10, 1.3, true),
     `暴食期间食物也该多一点，实际 ${inBuff.fx.foodAmount}`,
   )
 
@@ -1506,10 +1535,10 @@ try {
   assert.equal(after.post.buff, null, 'BUFF 到点就该没了')
   assert.equal(after.combo, 1, '隔了 15 秒连击也断了')
   assert.equal(
-    after.fx.foodAmount, foodOf(1000, 1, 1.3, false),
+    after.fx.foodAmount, foodOf(toolTokensOf(4000), 1, 1.3, false),
     `BUFF 过期后食物量应当回到常态，实际 ${after.fx.foodAmount}`,
   )
-  assert.equal(after.fx.expAmount, expOf('tool_result', after.pre.pet, 1, false))
+  assert.equal(after.fx.expAmount, expOf('tool_result', after.pre.pet, 1, false, toolTokensOf(4000)))
   assert.equal(after.post.bubble.kind, 'favorite', '吃到最爱应当夸一句')
 
   // 再连着吃到第 9 口，这次隔够了限流窗口 → 抱怨一句「换个口味」。
@@ -1527,7 +1556,7 @@ try {
   assert.equal(plainLast.combo, 10, '关了这两条也照样攒连击')
   assert.equal(plain.readState().buff, null, 'frenzyEnabled:false 时不该开 BUFF')
   assert.equal(
-    plainLast.fx.foodAmount, foodOf(1000, 10, 1, false),
+    plainLast.fx.foodAmount, foodOf(toolTokensOf(4000), 10, 1, false),
     `pickyEnabled:false 时口味系数应当是 1，实际 ${plainLast.fx.foodAmount}`,
   )
   assert.equal(
@@ -1715,7 +1744,7 @@ try {
   // 落盘往返：技能与记忆原样回来（v 不变，老存档缺这两个字段也读得动）。
   fireWindow('pagehide')
   const saved = JSON.parse(storage.get(STATE_KEY))
-  assert.equal(saved.v, 1, '加字段不该动存档版本号')
+  assert.equal(saved.v, 2, '存档版本号')
   const reborn = bootFresh().readState()
   assert.deepEqual(reborn.skills, other.skills, '技能应当原样回来')
   assert.deepEqual(reborn.memory, other.memory, '记忆应当原样回来')
@@ -2177,20 +2206,15 @@ try {
   // 之前 —— 睡着的鲸鱼不该睁着一双好奇的眼。
   const curiousWhale = findNode(cardOf(dims.component), n => typeof n.type === 'function')
   assert.equal(curiousWhale.props.dim.key, 'curiosity', '三维应当传给鲸鱼')
-  const browOf = props => findNode(
-    curiousWhale.type(props), n => n.props?.className === 'dshpet-whale-brow',
+  // APNG 精灵版没有眉毛/嘴形部件：三维不改变底座动图（素材只有 7 态，无三维专属
+  // 表情），但优先级不变 —— 睡着时仍切睡眠态，而不是被三维盖掉。
+  const curiousImg = srcOf(curiousWhale.type(curiousWhale.props))
+  const calmImg = srcOf(curiousWhale.type(Object.assign({}, curiousWhale.props, { tier: 'normal' })))
+  assert.equal(curiousImg, calmImg, '三维不改变底座动图（素材无三维专属表情）')
+  assert.ok(
+    srcOf(curiousWhale.type(Object.assign({}, curiousWhale.props, { asleep: true }))).indexOf('-sleep.apng') !== -1,
+    '睡着的时候三维不该上脸（切睡眠态动图）',
   )
-  assert.ok(browOf(curiousWhale.props) !== null, '有情绪就该长出眉毛')
-  assert.equal(browOf({ tier: 'normal' }), null, '平时没有眉毛')
-  assert.equal(
-    browOf(Object.assign({}, curiousWhale.props, { asleep: true })), null,
-    '睡着的时候三维不该上脸',
-  )
-  // 嘴形也跟着换（三维各有一张脸，不然「写在脸上」是句空话）。
-  const mouthOf = props => findNode(
-    curiousWhale.type(props), n => n.props?.className === 'dshpet-whale-mouth',
-  ).props.d
-  assert.notEqual(mouthOf(curiousWhale.props), mouthOf({ tier: 'normal' }), '好奇该有自己的嘴形')
 
   // 面板里那一行：三维只报数字，刻意不给进度条（它们不驱动任何数值）。
   const dimsBadge = findNode(dims.component({}), n => n.props?.className === 'dshpet-badge-btn')
@@ -2224,14 +2248,18 @@ try {
   assert.equal(worry.readState().pet.concern, 20, '报错应当涨担忧')
   runTool('bash', { command: 'b' }, 'x2', FAIL)
   runTool('pwsh', { command: 'c' }, 'x3', FAIL)
+  // 第四次才过 moodDimAt（70）—— 三次 60 分还没到写在脸上的那条线。
+  assert.equal(worry.readState().bubble.kind !== 'worried', true, '60 分还不该上脸')
+  // 仍旧挂在 pwsh 上：下面那条「跨过报错」要的就是这个工具刚挂过。
+  runTool('pwsh', { command: 'd' }, 'x4', FAIL)
   const worried = worry.readState()
-  assert.equal(worried.pet.concern, 60)
+  assert.equal(worried.pet.concern, 80)
   assert.equal(worried.bubble.kind, 'worried', '担忧过线应当说一句: ' + worried.bubble.kind)
   assert.ok(linesOf('worried').includes(worried.bubble.text), '担忧的台词不在池子里')
   assert.equal(cardOf(worry.component).props['data-dim'], 'concern', '担忧过线应当写在脸上')
 
   // 得意：从一道坎里走出来（同一个工具刚挂过、这次成了）。
-  runTool('pwsh', { command: 'c' }, 'x4', undefined)
+  runTool('pwsh', { command: 'c' }, 'x5', undefined)
   assert.equal(worry.readState().pet.pride, 20, '跨过报错应当涨得意')
   assert.equal(worry.readState().memory.recoveries, 1)
 
@@ -2253,19 +2281,19 @@ try {
 
   // 衰减：没事发生就慢慢没情绪，1.2/分钟，走「取整 + 留余额」。
   const fade = bootAt(T6, dimSave({
-    pet: { hunger: 40, exp: 0, level: 3, mood: 80, energy: 80, curiosity: 72, pride: 30, concern: 0 },
+    pet: { hunger: 40, exp: 0, level: 3, mood: 80, energy: 80, curiosity: 82, pride: 30, concern: 0 },
   }))
   const born6 = fade.readState().pet
-  assert.equal(born6.curiosity, 72, '存档里的三维应当原样回来')
+  assert.equal(born6.curiosity, 82, '存档里的三维应当原样回来')
   assert.equal(born6.pride, 30)
   const fadeTick = tickerOf(fade.component)
   Date.now = () => T6 + 10 * 60000
   fadeTick()
   const faded = fade.readState().pet
-  assert.equal(faded.curiosity, 60, `空闲 10 分钟应当掉 12 点，实际 ${faded.curiosity}`)
+  assert.equal(faded.curiosity, 70, `空闲 10 分钟应当掉 12 点，实际 ${faded.curiosity}`)
   assert.equal(faded.pride, 18)
   assert.equal(faded.concern, 0, '已经是 0 的那一维不该被减成负数')
-  assert.equal(cardOf(fade.component).props['data-dim'], 'curiosity', '60 还在线上')
+  assert.equal(cardOf(fade.component).props['data-dim'], 'curiosity', '70 正好还在线上')
 
   // 存档里塞垃圾：夹回范围而不是崩。
   const dirty = bootAt(T6, dimSave({
@@ -2440,8 +2468,8 @@ try {
   }))
   fireWindow('pagehide')
   const tripSaved = JSON.parse(storage.get(STATE_KEY))
-  assert.equal(tripSaved.v, 1, '加三维不该动存档版本号')
-  assert.equal(tripSaved.pet.curiosity, 61, '三维要落盘')
+  assert.equal(tripSaved.v, 2, '存档版本号')
+  assert.equal(tripSaved.pets[tripSaved.activePetId].pet.curiosity, 61, '三维要落盘')
   const tripBack = bootFresh().readState().pet
   assert.deepEqual(
     [tripBack.curiosity, tripBack.pride, tripBack.concern], [61, 12, 3],
@@ -2472,6 +2500,250 @@ try {
   storage.delete(STATE_KEY)
 } finally {
   Date.now = dimClock
+}
+
+// ---- 进化系统：Lv.10 按主技能分化 ----------------------------------------
+
+// 和「等级形态」一节同一个理由排在后面：这一节要靠存档摆等级与技能，而重启出来
+// 的实例会跟着 pagehide 抢着落盘。
+const morphClock = Date.now
+try {
+  const T6 = T + 6 * 86400000
+  const MORPH_DAY = dayIndexOf(T6)
+
+  /**
+   * 一份「养到位了」的存档：等级 / 技能等级 / 已有形态按用例给，其余摆成不碍事
+   * 的样子 —— 成就与今日任务先标成拿过了，免得它们的强制台词抢走变身那一句。
+   * @param level - 宠物等级。
+   * @param levels - 要抬的技能等级（没写的那几门就是 Lv.1）。
+   * @param pet - 覆盖到 pet 上的字段（塞脏 form 的用例要用）。
+   */
+  function morphSave(level, levels, pet) {
+    const skills = {}
+    for (const key of ['coding', 'research', 'writing', 'debug']) {
+      skills[key] = { xp: 0, level: levels[key] === undefined ? 1 : levels[key] }
+    }
+    return {
+      pet: Object.assign({ hunger: 20, exp: 0, level, mood: 80, energy: 75 }, pet),
+      totalFeeds: 30, totalTokens: 40000, snacks: SNACK_MAX,
+      tokensBySource: { user_input: 10000, generation: 20000, tool_result: 10000 },
+      achievements: ['first_feed', 'gourmet'],
+      daily: {
+        day: MORPH_DAY, feeds: 0, tools: 0, bestCombo: 0, done: ['feeds', 'tools', 'combo'],
+      },
+      streakDay: MORPH_DAY, streakCount: 1, lastFeedAt: T6,
+      skills,
+    }
+  }
+
+  /** 卡片 / 头像 / 名字行 / tooltip 一次掏齐（头像照旧是第一个函数类型的节点）。 */
+  function viewOf(boot) {
+    const card = cardOf(boot.component)
+    const node = findNode(card, n => typeof n.type === 'function')
+    return {
+      card,
+      node,
+      whale: node.type(node.props),
+      name: findNode(card, n => n.props?.className === 'dshpet-name').children.join(''),
+      stage: card.props['data-stage'],
+      title: card.props.title,
+    }
+  }
+
+  /** 四类活各来一个代表工具（技能那条路是 tool/call 推的，不是喂食）。 */
+  const TOOL_ARGS = {
+    edit: { file_path: 'C:\\code\\deepseek-pet\\lib\\client.js' },
+    grep: { pattern: 'whale' },
+    todo_write: {},
+    bash: { command: 'ls' },
+  }
+  let callSeq = 0
+  /**
+   * 起一份实例，再调一次工具 —— 分化的两个条件分头由喂食（等级）与工具（技能）
+   * 推动，这一节走的是工具那条路。
+   */
+  function morphRun(level, levels, tool = 'edit', pet = undefined) {
+    const boot = bootAt(T6, morphSave(level, levels, pet))
+    callSeq += 1
+    boot.feed(callEvent(tool, TOOL_ARGS[tool], 'mf' + callSeq))
+    return boot
+  }
+  const morphFxOf = boot => boot.readState().effects.filter(e => e.source === 'morph')
+
+  // 老存档（根本没有 form 这个字段）读进来就是「还没分化」，等级 / 技能一个不丢。
+  const legacy = bootAt(T6, morphSave(10, { coding: 5 }))
+  assert.equal(legacy.readState().pet.form, '', '老存档应当兜底成没进化')
+  assert.equal(legacy.readState().skills.coding.level, 5, '技能等级不该被顺手洗掉')
+  assert.equal(cardOf(legacy.component).props['data-stage'], 'legend', '没事件推动时先按等级长')
+
+  // 门槛两道：等级到 evolveMinLevel，且有**唯一**一门技能到 evolveMinSkillLevel。
+  const GATE = [
+    { why: 'Lv.9 还差一级', level: 9, levels: { coding: 6 }, stage: 'adult' },
+    { why: '四门都平（新宠物就是四门 Lv.1）', level: 10, levels: {}, stage: 'legend' },
+    { why: '两门并列第一', level: 10, levels: { coding: 6, debug: 6 }, stage: 'legend' },
+    { why: '唯一最高但没到 Lv.5', level: 10, levels: { coding: 4 }, stage: 'legend' },
+    { why: '唯一最高且到了 Lv.5', level: 10, levels: { coding: 5 }, stage: 'cat' },
+  ]
+  for (const row of GATE) {
+    const boot = morphRun(row.level, row.levels)
+    const got = viewOf(boot)
+    assert.equal(got.stage, row.stage, `${row.why}：形态应当是 ${row.stage}，实际 ${got.stage}`)
+    assert.equal(
+      boot.readState().pet.form, row.stage === 'cat' ? 'cat' : '',
+      `${row.why}：pet.form 不对`,
+    )
+    assert.equal(
+      morphFxOf(boot).length, row.stage === 'cat' ? 1 : 0,
+      `${row.why}：变身特效的条数不对`,
+    )
+  }
+
+  // 四门技能各对一种形态，一例都不能串。
+  const FORM_ROWS = [
+    { skill: 'coding', tool: 'edit', key: 'cat', label: '代码猫', icon: '🐱' },
+    { skill: 'research', tool: 'grep', key: 'fox', label: '探索狐', icon: '🦊' },
+    { skill: 'writing', tool: 'todo_write', key: 'bird', label: '文鸟', icon: '🐦' },
+    { skill: 'debug', tool: 'bash', key: 'bug', label: '调试虫', icon: '🪲' },
+  ]
+  // 进化形态没有专属 APNG 素材：图面回退到传说档鲸鱼，尺寸与名称仍按形态。
+  let catBoot = null
+  let avatarOf = null
+  for (const row of FORM_ROWS) {
+    const boot = morphRun(10, { [row.skill]: 5 }, row.tool)
+    const got = viewOf(boot)
+    if (row.key === 'cat') { catBoot = boot; avatarOf = got.node.type }
+    assert.equal(got.stage, row.key, `${row.skill} 领先应当分化成 ${row.key}，实际 ${got.stage}`)
+    assert.equal(boot.readState().pet.form, row.key, `${row.key}：pet.form 应当写上`)
+    assert.equal(
+      got.name, `深深 · Lv.10 ${row.label}`, `${row.key} 的名字行不对: ${got.name}`,
+    )
+    assert.match(
+      ariaOf(got.whale), new RegExp(row.label),
+      `${row.key} 的 aria-label 应当写着形态名`,
+    )
+    // 进化是终点：tooltip 写着当前形态，但不再指下一档。
+    assert.match(got.title, new RegExp('形态 ' + row.label), 'tooltip 应当写着形态: ' + got.title)
+    assert.doesNotMatch(got.title, /→ Lv\./, '进化过就没有下一档了: ' + got.title)
+    // 变身那一条特效：彩虹大字 + 形态图标 + 就地飘（不从会话区飞）。
+    const fx = morphFxOf(boot)
+    assert.equal(fx.length, 1, `${row.key} 应当只飘一条变身特效`)
+    assert.equal(fx[0].text, '进化 · ' + row.label, `${row.key} 的变身文案不对: ${fx[0].text}`)
+    assert.equal(fx[0].tier, 'epic', '变身蹭进阶那套彩虹大字')
+    assert.equal(fx[0].icon, row.icon, `${row.key} 的图标不对: ${fx[0].icon}`)
+    assert.equal(fx[0].flight.across, false, '变身特效就地飘')
+    assert.equal(boot.readState().bubble.kind, 'morph', '变身应当强插一句台词')
+    // 进化形态共用传说档精灵：三层 img 都在，且图面回退到 legend 档。
+    for (const cls of ['dshpet-whale-sprite', 'dshpet-sprite-eat', 'dshpet-sprite-pat']) {
+      assert.ok(
+        findNode(got.whale, n => typeof n.props?.className === 'string' && n.props.className.includes(cls)) !== null,
+        `${row.label} 缺精灵层: ${cls}`,
+      )
+      assert.ok(CSS_TEXT.includes('.' + cls), `${cls} 没有对应样式`)
+    }
+    assert.ok(
+      srcOf(got.whale).indexOf('-legend-') !== -1,
+      `${row.label} 的图面应当回退到传说档鲸鱼`,
+    )
+  }
+
+  // 状态切换在进化形态上同样生效：兴奋 / 睡 / 饿 / 平时是四张不同的动图。
+  for (const row of FORM_ROWS) {
+    const props = { level: 10, form: row.key, dim: null }
+    const frames = [
+      { tier: 'epic' }, { tier: 'normal', asleep: true },
+      { tier: 'normal', hungry: true }, { tier: 'normal' },
+    ].map(extra => srcOf(avatarOf(Object.assign({}, props, extra))))
+    assert.equal(
+      new Set(frames).size, 4,
+      `${row.label} 的兴奋 / 睡 / 饿 / 平时应当是四张不同的动图，实际 ${new Set(frames).size} 张`,
+    )
+    // 睡着时底座切睡眠态动图。
+    const asleep = avatarOf(Object.assign({}, props, { tier: 'normal', asleep: true }))
+    assert.ok(
+      srcOf(asleep).indexOf('-sleep.apng') !== -1,
+      `${row.label} 睡着时应当用睡眠态动图`,
+    )
+  }
+
+  // 变身动画：白光那一层跟着 source==="morph" 的特效来，整只宠物同时缩放一下。
+  const catCard = viewOf(catBoot).card
+  assert.ok(
+    findNode(catCard, n => n.props?.className === 'dshpet-morph') !== null,
+    '变身时头像上应当有一层白光',
+  )
+  assert.ok(
+    findNode(catCard, n => n.props?.className === 'dshpet-morphing') !== null,
+    '变身时整只宠物应当跟着缩放一下',
+  )
+  assert.ok(CSS_TEXT.includes('.dshpet-morph{'), '.dshpet-morph 没有对应样式')
+  assert.ok(CSS_TEXT.includes('@keyframes dshpet-morph{'), '白光没有 keyframes')
+  assert.ok(CSS_TEXT.includes('@keyframes dshpet-morph-pop{'), '缩放没有 keyframes')
+  const morphCalm = CSS_TEXT.slice(CSS_TEXT.indexOf('prefers-reduced-motion'))
+  for (const cls of ['.dshpet-morph', '.dshpet-morphing']) {
+    assert.ok(morphCalm.includes(cls), '减少动效时应当也关掉 ' + cls)
+  }
+  assert.ok(
+    morphCalm.includes('.dshpet-morph{opacity:0}'),
+    '白光的动画是 both，关掉动画得显式收进透明态，否则它会留一块白盖住宠物',
+  )
+
+  // 一次定终身：变身之后主技能被别人超过去，形态也不再动。
+  storage.set(CONFIG_KEY, JSON.stringify({ skillXpPerLevel: 1 }))
+  const settled = bootAt(T6, morphSave(10, { coding: 5, debug: 4 }))
+  settled.feed(callEvent('edit', TOOL_ARGS.edit, 'ms1'))
+  assert.equal(settled.readState().pet.form, 'cat', '这一次工具调用就该当场变身')
+  for (let i = 0; i < 12; i += 1) settled.feed(callEvent('bash', TOOL_ARGS.bash, 'ms' + (i + 2)))
+  const settledState = settled.readState()
+  assert.ok(
+    settledState.skills.debug.level > settledState.skills.coding.level,
+    `这一串调试应当把 debug 顶到唯一最高，实际 debug ${settledState.skills.debug.level}`
+    + ` / coding ${settledState.skills.coding.level}`,
+  )
+  assert.equal(settledState.pet.form, 'cat', '进化只有一次，不该跟着技能榜换来换去')
+  assert.equal(morphFxOf(settled).length, 1, '不该再飘第二条变身特效')
+  assert.equal(cardOf(settled.component).props['data-stage'], 'cat', '卡片上也该还是猫')
+  storage.delete(CONFIG_KEY)
+
+  // 喂食那条路：pet 是逐字段重建的，升级也不该把 form 弄丢。
+  const fed = morphRun(10, { coding: 5 }, 'edit', { exp: 999 })
+  assert.equal(fed.readState().pet.form, 'cat')
+  clickSnack(fed.component)
+  const fedState = fed.readState()
+  assert.equal(fedState.pet.level, 11, '这一口零食应当把等级顶到 11')
+  assert.equal(fedState.pet.form, 'cat', 'feedPet 重建 pet 时不该把 form 清成空')
+  assert.equal(cardOf(fed.component).props['data-stage'], 'cat', 'Lv.11 也还是猫，不是传说金鲸')
+
+  // 落盘往返：form 要进存档，而且加这个字段不该动版本号。
+  const trip = morphRun(10, { research: 5 }, 'grep')
+  assert.equal(trip.readState().pet.form, 'fox')
+  fireWindow('pagehide')
+  const tripDoc = JSON.parse(fakeLocalStorage.getItem(STATE_KEY))
+  assert.equal(tripDoc.v, 2, '存档版本号')
+  assert.equal(tripDoc.pets[tripDoc.activePetId].pet.form, 'fox', 'form 应当落盘')
+  assert.equal(bootFresh().readState().pet.form, 'fox', '重启回来还是狐狸')
+
+  // 存档里的 form 是外来数据：认不出来的一概当成没进化，而不是拿去渲染。
+  for (const bad of ['dragon', 'constructor', 5, null, { key: 'cat' }]) {
+    const dirty = bootAt(T6, morphSave(10, {}, { form: bad }))
+    assert.equal(
+      dirty.readState().pet.form, '', `脏 form ${JSON.stringify(bad)} 应当被洗成没进化`,
+    )
+    assert.equal(
+      cardOf(dirty.component).props['data-stage'], 'legend',
+      `脏 form ${JSON.stringify(bad)} 不该被拿去渲染`,
+    )
+  }
+
+  // 开关：关了就停在传说金鲸，一条特效不飘、form 也不写。
+  storage.set(CONFIG_KEY, JSON.stringify({ evolveEnabled: false }))
+  const off = morphRun(10, { coding: 5 })
+  assert.equal(off.readState().pet.form, '', 'evolveEnabled:false 时不该写 form')
+  assert.equal(morphFxOf(off).length, 0, '关了就不该飘变身特效')
+  assert.equal(cardOf(off.component).props['data-stage'], 'legend', '关了就停在传说金鲸')
+  storage.delete(CONFIG_KEY)
+  storage.delete(STATE_KEY)
+} finally {
+  Date.now = morphClock
 }
 
 console.log('smoke: OK —', live.totalFeeds, '次喂食, Lv.' + live.pet.level,

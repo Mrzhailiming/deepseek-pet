@@ -1,9 +1,16 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 420" width="900" height="420" role="img" aria-label="deepseek-pet 演示：Agent 干活喂鲸鱼，连击顶格开暴食，解锁成就，摸摸头，然后它睡了">
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 420" width="900" height="420" role="img" aria-label="deepseek-pet 演示：Agent 干活喂鲸鱼，连击顶格开暴食，解锁成就，摸摸头，升到 Lv.10 分化成代码猫，然后它睡了">
   <title>deepseek-pet — Agent 干活就是在喂它</title>
   <defs>
     <linearGradient id="skin" x1="0" y1="0" x2="0" y2="1">
       <stop offset="0" stop-color="#6f8cff"/><stop offset=".55" stop-color="#2740c9"/><stop offset="1" stop-color="#16226e"/>
     </linearGradient>
+    <linearGradient id="skin-cat" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0" stop-color="#b7c4ff"/><stop offset=".55" stop-color="#7b8cf0"/><stop offset="1" stop-color="#4b58c4"/>
+    </linearGradient>
+    <radialGradient id="flash">
+      <stop offset="0" stop-color="#ffffff" stop-opacity=".95"/>
+      <stop offset=".72" stop-color="#ffffff" stop-opacity="0"/>
+    </radialGradient>
     <linearGradient id="belly" x1="0" y1="0" x2="0" y2="1">
       <stop offset="0" stop-color="#ffffff" stop-opacity=".92"/><stop offset="1" stop-color="#d7e2ff" stop-opacity=".85"/>
     </linearGradient>
@@ -20,104 +27,130 @@
     .v{opacity:0}
     .whale *,.food,.avatar{transform-box:fill-box;transform-origin:center}
     .float{transform-box:fill-box;transform-origin:left center}
-    @keyframes k-msg0{0%{opacity:0;transform:translateY(6px)}1.327%{opacity:0;transform:translateY(6px)}3.067%{opacity:1;transform:translateY(0)}97.333%{opacity:1;transform:translateY(0)}100%{opacity:0;transform:translateY(0)}}
-    .v-msg0{animation:k-msg0 15000ms linear infinite}
-    @keyframes k-msg1{0%{opacity:0;transform:translateY(6px)}5.327%{opacity:0;transform:translateY(6px)}7.067%{opacity:1;transform:translateY(0)}97.333%{opacity:1;transform:translateY(0)}100%{opacity:0;transform:translateY(0)}}
-    .v-msg1{animation:k-msg1 15000ms linear infinite}
-    @keyframes k-msg2{0%{opacity:0;transform:translateY(6px)}9.327%{opacity:0;transform:translateY(6px)}11.067%{opacity:1;transform:translateY(0)}97.333%{opacity:1;transform:translateY(0)}100%{opacity:0;transform:translateY(0)}}
-    .v-msg2{animation:k-msg2 15000ms linear infinite}
-    @keyframes k-msg3{0%{opacity:0;transform:translateY(6px)}13.327%{opacity:0;transform:translateY(6px)}15.067%{opacity:1;transform:translateY(0)}97.333%{opacity:1;transform:translateY(0)}100%{opacity:0;transform:translateY(0)}}
-    .v-msg3{animation:k-msg3 15000ms linear infinite}
-    @keyframes k-msg4{0%{opacity:0;transform:translateY(6px)}17.327%{opacity:0;transform:translateY(6px)}19.067%{opacity:1;transform:translateY(0)}97.333%{opacity:1;transform:translateY(0)}100%{opacity:0;transform:translateY(0)}}
-    .v-msg4{animation:k-msg4 15000ms linear infinite}
-    @keyframes k-msg5{0%{opacity:0;transform:translateY(6px)}21.327%{opacity:0;transform:translateY(6px)}23.067%{opacity:1;transform:translateY(0)}97.333%{opacity:1;transform:translateY(0)}100%{opacity:0;transform:translateY(0)}}
-    .v-msg5{animation:k-msg5 15000ms linear infinite}
-    @keyframes k-food0{0%{opacity:0;transform:translate(-115px,-224px) scale(.35)}2.66%{opacity:0;transform:translate(-115px,-224px) scale(.35)}3.147%{opacity:1}5.467%{transform:translate(0,-5px) scale(1.2)}6.667%{opacity:1;transform:translate(0,0) scale(1)}8.667%{opacity:0;transform:translate(0,0) scale(1)}100%{opacity:0}}
-    .f0{opacity:0;animation:k-food0 15000ms linear infinite;filter:drop-shadow(0 2px 6px rgba(0,0,0,.45))}
-    @keyframes k-float0{0%{opacity:0;transform:translateY(0)}6.66%{opacity:0;transform:translateY(0)}9.067%{opacity:1;transform:translateY(-8px)}14.667%{opacity:0;transform:translateY(-30px)}100%{opacity:0}}
-    .fl0{opacity:0;animation:k-float0 15000ms linear infinite}
-    @keyframes k-food1{0%{opacity:0;transform:translate(-301px,-178px) scale(.35)}6.66%{opacity:0;transform:translate(-301px,-178px) scale(.35)}7.147%{opacity:1}9.467%{transform:translate(0,-5px) scale(1.2)}10.667%{opacity:1;transform:translate(0,0) scale(1)}12.667%{opacity:0;transform:translate(0,0) scale(1)}100%{opacity:0}}
-    .f1{opacity:0;animation:k-food1 15000ms linear infinite;filter:drop-shadow(0 2px 6px rgba(0,0,0,.45))}
-    @keyframes k-float1{0%{opacity:0;transform:translateY(0)}10.66%{opacity:0;transform:translateY(0)}13.067%{opacity:1;transform:translateY(-8px)}18.667%{opacity:0;transform:translateY(-30px)}100%{opacity:0}}
-    .fl1{opacity:0;animation:k-float1 15000ms linear infinite}
-    @keyframes k-food2{0%{opacity:0;transform:translate(-311px,-121px) scale(.35)}10.66%{opacity:0;transform:translate(-311px,-121px) scale(.35)}11.147%{opacity:1}13.467%{transform:translate(0,-5px) scale(1.2)}14.667%{opacity:1;transform:translate(0,0) scale(1)}16.667%{opacity:0;transform:translate(0,0) scale(1)}100%{opacity:0}}
-    .f2{opacity:0;animation:k-food2 15000ms linear infinite;filter:drop-shadow(0 2px 6px rgba(0,0,0,.45))}
-    @keyframes k-float2{0%{opacity:0;transform:translateY(0)}14.66%{opacity:0;transform:translateY(0)}17.067%{opacity:1;transform:translateY(-8px)}22.667%{opacity:0;transform:translateY(-30px)}100%{opacity:0}}
-    .fl2{opacity:0;animation:k-float2 15000ms linear infinite}
-    @keyframes k-food3{0%{opacity:0;transform:translate(-321px,-73px) scale(.35)}14.66%{opacity:0;transform:translate(-321px,-73px) scale(.35)}15.147%{opacity:1}17.467%{transform:translate(0,-5px) scale(1.2)}18.667%{opacity:1;transform:translate(0,0) scale(1)}20.667%{opacity:0;transform:translate(0,0) scale(1)}100%{opacity:0}}
-    .f3{opacity:0;animation:k-food3 15000ms linear infinite;filter:drop-shadow(0 2px 6px rgba(0,0,0,.45))}
-    @keyframes k-float3{0%{opacity:0;transform:translateY(0)}18.66%{opacity:0;transform:translateY(0)}21.067%{opacity:1;transform:translateY(-8px)}26.667%{opacity:0;transform:translateY(-30px)}100%{opacity:0}}
-    .fl3{opacity:0;animation:k-float3 15000ms linear infinite}
-    @keyframes k-food4{0%{opacity:0;transform:translate(-301px,-25px) scale(.35)}18.66%{opacity:0;transform:translate(-301px,-25px) scale(.35)}19.147%{opacity:1}21.467%{transform:translate(0,-5px) scale(1.2)}22.667%{opacity:1;transform:translate(0,0) scale(1)}24.667%{opacity:0;transform:translate(0,0) scale(1)}100%{opacity:0}}
-    .f4{opacity:0;animation:k-food4 15000ms linear infinite;filter:drop-shadow(0 2px 6px rgba(0,0,0,.45))}
-    @keyframes k-float4{0%{opacity:0;transform:translateY(0)}22.66%{opacity:0;transform:translateY(0)}25.067%{opacity:1;transform:translateY(-8px)}30.667%{opacity:0;transform:translateY(-30px)}100%{opacity:0}}
-    .fl4{opacity:0;animation:k-float4 15000ms linear infinite}
-    @keyframes k-food5{0%{opacity:0;transform:translate(-315px,23px) scale(.35)}22.66%{opacity:0;transform:translate(-315px,23px) scale(.35)}23.147%{opacity:1}25.467%{transform:translate(0,-5px) scale(1.2)}26.667%{opacity:1;transform:translate(0,0) scale(1)}28.667%{opacity:0;transform:translate(0,0) scale(1)}100%{opacity:0}}
-    .f5{opacity:0;animation:k-food5 15000ms linear infinite;filter:drop-shadow(0 2px 6px rgba(0,0,0,.45))}
-    @keyframes k-float5{0%{opacity:0;transform:translateY(0)}26.66%{opacity:0;transform:translateY(0)}29.067%{opacity:1;transform:translateY(-8px)}34.667%{opacity:0;transform:translateY(-30px)}100%{opacity:0}}
-    .fl5{opacity:0;animation:k-float5 15000ms linear infinite}
-    @keyframes k-note0{0%{opacity:0;transform:translateY(0)}35.993%{opacity:0;transform:translateY(0)}38.4%{opacity:1;transform:translateY(-8px)}44%{opacity:0;transform:translateY(-30px)}100%{opacity:0}}
-    .nt0{opacity:0;animation:k-note0 15000ms linear infinite}
-    @keyframes k-note1{0%{opacity:0;transform:translateY(0)}45.993%{opacity:0;transform:translateY(0)}48.4%{opacity:1;transform:translateY(-8px)}54%{opacity:0;transform:translateY(-30px)}100%{opacity:0}}
-    .nt1{opacity:0;animation:k-note1 15000ms linear infinite}
-    @keyframes k-note2{0%{opacity:0;transform:translateY(0)}55.327%{opacity:0;transform:translateY(0)}57.733%{opacity:1;transform:translateY(-8px)}63.333%{opacity:0;transform:translateY(-30px)}100%{opacity:0}}
-    .nt2{opacity:0;animation:k-note2 15000ms linear infinite}
-    @keyframes k-combo0{0%{opacity:0}2.66%{opacity:0}3.467%{opacity:1}5.867%{opacity:1}6.667%{opacity:0}100%{opacity:0}}
-    .v-combo0{animation:k-combo0 15000ms linear infinite}
-    @keyframes k-combo1{0%{opacity:0}6.66%{opacity:0}7.467%{opacity:1}9.867%{opacity:1}10.667%{opacity:0}100%{opacity:0}}
-    .v-combo1{animation:k-combo1 15000ms linear infinite}
-    @keyframes k-combo2{0%{opacity:0}10.66%{opacity:0}11.467%{opacity:1}13.867%{opacity:1}14.667%{opacity:0}100%{opacity:0}}
-    .v-combo2{animation:k-combo2 15000ms linear infinite}
-    @keyframes k-combo3{0%{opacity:0}14.66%{opacity:0}15.467%{opacity:1}17.867%{opacity:1}18.667%{opacity:0}100%{opacity:0}}
-    .v-combo3{animation:k-combo3 15000ms linear infinite}
-    @keyframes k-combo4{0%{opacity:0}18.66%{opacity:0}19.467%{opacity:1}21.867%{opacity:1}22.667%{opacity:0}100%{opacity:0}}
-    .v-combo4{animation:k-combo4 15000ms linear infinite}
-    @keyframes k-combo5{0%{opacity:0}22.66%{opacity:0}23.467%{opacity:1}63.2%{opacity:1}64%{opacity:0}100%{opacity:0}}
-    .v-combo5{animation:k-combo5 15000ms linear infinite}
-    @keyframes k-bub0{0%{opacity:0}23.327%{opacity:0}24.667%{opacity:1}33.333%{opacity:1}34.667%{opacity:0}100%{opacity:0}}
-    .v-bub0{animation:k-bub0 15000ms linear infinite}
-    @keyframes k-bub1{0%{opacity:0}36.66%{opacity:0}38%{opacity:1}45.333%{opacity:1}46.667%{opacity:0}100%{opacity:0}}
-    .v-bub1{animation:k-bub1 15000ms linear infinite}
-    @keyframes k-bub2{0%{opacity:0}47.327%{opacity:0}48.667%{opacity:1}53.333%{opacity:1}54.667%{opacity:0}100%{opacity:0}}
-    .v-bub2{animation:k-bub2 15000ms linear infinite}
-    @keyframes k-bub3{0%{opacity:0}55.993%{opacity:0}57.333%{opacity:1}64%{opacity:1}65.333%{opacity:0}100%{opacity:0}}
-    .v-bub3{animation:k-bub3 15000ms linear infinite}
-    @keyframes k-bub4{0%{opacity:0}75.993%{opacity:0}77.333%{opacity:1}97.333%{opacity:1}98.667%{opacity:0}100%{opacity:0}}
-    .v-bub4{animation:k-bub4 15000ms linear infinite}
-    @keyframes k-vit0{0%{opacity:0}0.933%{opacity:1}21.733%{opacity:1}22.667%{opacity:0}100%{opacity:0}}
-    .v-vit0{animation:k-vit0 15000ms linear infinite}
-    @keyframes k-vit1{0%{opacity:0}22.66%{opacity:0}23.6%{opacity:1}54.4%{opacity:1}55.333%{opacity:0}100%{opacity:0}}
-    .v-vit1{animation:k-vit1 15000ms linear infinite}
-    @keyframes k-vit2{0%{opacity:0}55.327%{opacity:0}56.267%{opacity:1}72.4%{opacity:1}73.333%{opacity:0}100%{opacity:0}}
-    .v-vit2{animation:k-vit2 15000ms linear infinite}
-    @keyframes k-vit3{0%{opacity:0}73.327%{opacity:0}74.267%{opacity:1}99.067%{opacity:1}100%{opacity:0}}
-    .v-vit3{animation:k-vit3 15000ms linear infinite}
-    @keyframes k-frenzy{0%{opacity:0}22.66%{opacity:0}24.133%{opacity:1}62.533%{opacity:1}64%{opacity:0}100%{opacity:0}}
-    .v-frenzy{animation:k-frenzy 15000ms linear infinite}
-    @keyframes k-badge-new{0%{opacity:0}37.327%{opacity:0}38.933%{opacity:1}98.4%{opacity:1}100%{opacity:0}}
-    .v-badge-new{animation:k-badge-new 15000ms linear infinite}
-    @keyframes k-star{0%{opacity:0}18.66%{opacity:0}19.733%{opacity:1}62.933%{opacity:1}64%{opacity:0}100%{opacity:0}}
-    .v-eyes-star{animation:k-star 15000ms linear infinite}
-    .v-mouth-o{animation:k-star 15000ms linear infinite}
-    @keyframes k-shut{0%{opacity:0}73.327%{opacity:0}74.667%{opacity:1}98.667%{opacity:1}100%{opacity:0}}
-    .v-eyes-shut{animation:k-shut 15000ms linear infinite}
-    .v-mouth-flat{animation:k-shut 15000ms linear infinite}
-    @keyframes k-calm{0%{opacity:1}17.6%{opacity:1}18.667%{opacity:0}64%{opacity:0}65.333%{opacity:1}72%{opacity:1}73.333%{opacity:0}100%{opacity:0}}
-    .v-eyes-calm,.v-mouth-calm{animation:k-calm 15000ms linear infinite}
-    @keyframes k-spout{0%{opacity:1}72%{opacity:1}73.333%{opacity:0}100%{opacity:0}}
-    .v-spout{animation:k-spout 15000ms linear infinite}
-    @keyframes k-zzz{0%{opacity:0}74.66%{opacity:0}76.267%{opacity:1}98.4%{opacity:1}100%{opacity:0}}
-    .v-zzz-wrap{animation:k-zzz 15000ms linear infinite}
+    @keyframes k-msg0{0%{opacity:0;transform:translateY(6px)}1.106%{opacity:0;transform:translateY(6px)}2.556%{opacity:1;transform:translateY(0)}97.778%{opacity:1;transform:translateY(0)}100%{opacity:0;transform:translateY(0)}}
+    .v-msg0{animation:k-msg0 18000ms linear infinite}
+    @keyframes k-msg1{0%{opacity:0;transform:translateY(6px)}4.439%{opacity:0;transform:translateY(6px)}5.889%{opacity:1;transform:translateY(0)}97.778%{opacity:1;transform:translateY(0)}100%{opacity:0;transform:translateY(0)}}
+    .v-msg1{animation:k-msg1 18000ms linear infinite}
+    @keyframes k-msg2{0%{opacity:0;transform:translateY(6px)}7.772%{opacity:0;transform:translateY(6px)}9.222%{opacity:1;transform:translateY(0)}97.778%{opacity:1;transform:translateY(0)}100%{opacity:0;transform:translateY(0)}}
+    .v-msg2{animation:k-msg2 18000ms linear infinite}
+    @keyframes k-msg3{0%{opacity:0;transform:translateY(6px)}11.106%{opacity:0;transform:translateY(6px)}12.556%{opacity:1;transform:translateY(0)}97.778%{opacity:1;transform:translateY(0)}100%{opacity:0;transform:translateY(0)}}
+    .v-msg3{animation:k-msg3 18000ms linear infinite}
+    @keyframes k-msg4{0%{opacity:0;transform:translateY(6px)}14.439%{opacity:0;transform:translateY(6px)}15.889%{opacity:1;transform:translateY(0)}97.778%{opacity:1;transform:translateY(0)}100%{opacity:0;transform:translateY(0)}}
+    .v-msg4{animation:k-msg4 18000ms linear infinite}
+    @keyframes k-msg5{0%{opacity:0;transform:translateY(6px)}17.772%{opacity:0;transform:translateY(6px)}19.222%{opacity:1;transform:translateY(0)}97.778%{opacity:1;transform:translateY(0)}100%{opacity:0;transform:translateY(0)}}
+    .v-msg5{animation:k-msg5 18000ms linear infinite}
+    @keyframes k-food0{0%{opacity:0;transform:translate(-115px,-224px) scale(.35)}2.217%{opacity:0;transform:translate(-115px,-224px) scale(.35)}2.622%{opacity:1}4.556%{transform:translate(0,-5px) scale(1.2)}5.556%{opacity:1;transform:translate(0,0) scale(1)}7.222%{opacity:0;transform:translate(0,0) scale(1)}100%{opacity:0}}
+    .f0{opacity:0;animation:k-food0 18000ms linear infinite;filter:drop-shadow(0 2px 6px rgba(0,0,0,.45))}
+    @keyframes k-float0{0%{opacity:0;transform:translateY(0)}5.55%{opacity:0;transform:translateY(0)}7.556%{opacity:1;transform:translateY(-8px)}12.222%{opacity:0;transform:translateY(-30px)}100%{opacity:0}}
+    .fl0{opacity:0;animation:k-float0 18000ms linear infinite}
+    @keyframes k-food1{0%{opacity:0;transform:translate(-301px,-178px) scale(.35)}5.55%{opacity:0;transform:translate(-301px,-178px) scale(.35)}5.956%{opacity:1}7.889%{transform:translate(0,-5px) scale(1.2)}8.889%{opacity:1;transform:translate(0,0) scale(1)}10.556%{opacity:0;transform:translate(0,0) scale(1)}100%{opacity:0}}
+    .f1{opacity:0;animation:k-food1 18000ms linear infinite;filter:drop-shadow(0 2px 6px rgba(0,0,0,.45))}
+    @keyframes k-float1{0%{opacity:0;transform:translateY(0)}8.883%{opacity:0;transform:translateY(0)}10.889%{opacity:1;transform:translateY(-8px)}15.556%{opacity:0;transform:translateY(-30px)}100%{opacity:0}}
+    .fl1{opacity:0;animation:k-float1 18000ms linear infinite}
+    @keyframes k-food2{0%{opacity:0;transform:translate(-311px,-121px) scale(.35)}8.883%{opacity:0;transform:translate(-311px,-121px) scale(.35)}9.289%{opacity:1}11.222%{transform:translate(0,-5px) scale(1.2)}12.222%{opacity:1;transform:translate(0,0) scale(1)}13.889%{opacity:0;transform:translate(0,0) scale(1)}100%{opacity:0}}
+    .f2{opacity:0;animation:k-food2 18000ms linear infinite;filter:drop-shadow(0 2px 6px rgba(0,0,0,.45))}
+    @keyframes k-float2{0%{opacity:0;transform:translateY(0)}12.217%{opacity:0;transform:translateY(0)}14.222%{opacity:1;transform:translateY(-8px)}18.889%{opacity:0;transform:translateY(-30px)}100%{opacity:0}}
+    .fl2{opacity:0;animation:k-float2 18000ms linear infinite}
+    @keyframes k-food3{0%{opacity:0;transform:translate(-321px,-73px) scale(.35)}12.217%{opacity:0;transform:translate(-321px,-73px) scale(.35)}12.622%{opacity:1}14.556%{transform:translate(0,-5px) scale(1.2)}15.556%{opacity:1;transform:translate(0,0) scale(1)}17.222%{opacity:0;transform:translate(0,0) scale(1)}100%{opacity:0}}
+    .f3{opacity:0;animation:k-food3 18000ms linear infinite;filter:drop-shadow(0 2px 6px rgba(0,0,0,.45))}
+    @keyframes k-float3{0%{opacity:0;transform:translateY(0)}15.55%{opacity:0;transform:translateY(0)}17.556%{opacity:1;transform:translateY(-8px)}22.222%{opacity:0;transform:translateY(-30px)}100%{opacity:0}}
+    .fl3{opacity:0;animation:k-float3 18000ms linear infinite}
+    @keyframes k-food4{0%{opacity:0;transform:translate(-301px,-25px) scale(.35)}15.55%{opacity:0;transform:translate(-301px,-25px) scale(.35)}15.956%{opacity:1}17.889%{transform:translate(0,-5px) scale(1.2)}18.889%{opacity:1;transform:translate(0,0) scale(1)}20.556%{opacity:0;transform:translate(0,0) scale(1)}100%{opacity:0}}
+    .f4{opacity:0;animation:k-food4 18000ms linear infinite;filter:drop-shadow(0 2px 6px rgba(0,0,0,.45))}
+    @keyframes k-float4{0%{opacity:0;transform:translateY(0)}18.883%{opacity:0;transform:translateY(0)}20.889%{opacity:1;transform:translateY(-8px)}25.556%{opacity:0;transform:translateY(-30px)}100%{opacity:0}}
+    .fl4{opacity:0;animation:k-float4 18000ms linear infinite}
+    @keyframes k-food5{0%{opacity:0;transform:translate(-315px,23px) scale(.35)}18.883%{opacity:0;transform:translate(-315px,23px) scale(.35)}19.289%{opacity:1}21.222%{transform:translate(0,-5px) scale(1.2)}22.222%{opacity:1;transform:translate(0,0) scale(1)}23.889%{opacity:0;transform:translate(0,0) scale(1)}100%{opacity:0}}
+    .f5{opacity:0;animation:k-food5 18000ms linear infinite;filter:drop-shadow(0 2px 6px rgba(0,0,0,.45))}
+    @keyframes k-float5{0%{opacity:0;transform:translateY(0)}22.217%{opacity:0;transform:translateY(0)}24.222%{opacity:1;transform:translateY(-8px)}28.889%{opacity:0;transform:translateY(-30px)}100%{opacity:0}}
+    .fl5{opacity:0;animation:k-float5 18000ms linear infinite}
+    @keyframes k-note0{0%{opacity:0;transform:translateY(0)}29.994%{opacity:0;transform:translateY(0)}32%{opacity:1;transform:translateY(-8px)}36.667%{opacity:0;transform:translateY(-30px)}100%{opacity:0}}
+    .nt0{opacity:0;animation:k-note0 18000ms linear infinite}
+    @keyframes k-note1{0%{opacity:0;transform:translateY(0)}38.328%{opacity:0;transform:translateY(0)}40.333%{opacity:1;transform:translateY(-8px)}45%{opacity:0;transform:translateY(-30px)}100%{opacity:0}}
+    .nt1{opacity:0;animation:k-note1 18000ms linear infinite}
+    @keyframes k-note2{0%{opacity:0;transform:translateY(0)}46.106%{opacity:0;transform:translateY(0)}48.111%{opacity:1;transform:translateY(-8px)}52.778%{opacity:0;transform:translateY(-30px)}100%{opacity:0}}
+    .nt2{opacity:0;animation:k-note2 18000ms linear infinite}
+    @keyframes k-note3{0%{opacity:0;transform:translateY(0)}55.55%{opacity:0;transform:translateY(0)}57.556%{opacity:1;transform:translateY(-8px)}62.222%{opacity:0;transform:translateY(-30px)}100%{opacity:0}}
+    .nt3{opacity:0;animation:k-note3 18000ms linear infinite}
+    @keyframes k-note4{0%{opacity:0;transform:translateY(0)}58.328%{opacity:0;transform:translateY(0)}60.333%{opacity:1;transform:translateY(-8px)}65%{opacity:0;transform:translateY(-30px)}100%{opacity:0}}
+    .nt4{opacity:0;animation:k-note4 18000ms linear infinite}
+    @keyframes k-combo0{0%{opacity:0}2.217%{opacity:0}2.889%{opacity:1}4.889%{opacity:1}5.556%{opacity:0}100%{opacity:0}}
+    .v-combo0{animation:k-combo0 18000ms linear infinite}
+    @keyframes k-combo1{0%{opacity:0}5.55%{opacity:0}6.222%{opacity:1}8.222%{opacity:1}8.889%{opacity:0}100%{opacity:0}}
+    .v-combo1{animation:k-combo1 18000ms linear infinite}
+    @keyframes k-combo2{0%{opacity:0}8.883%{opacity:0}9.556%{opacity:1}11.556%{opacity:1}12.222%{opacity:0}100%{opacity:0}}
+    .v-combo2{animation:k-combo2 18000ms linear infinite}
+    @keyframes k-combo3{0%{opacity:0}12.217%{opacity:0}12.889%{opacity:1}14.889%{opacity:1}15.556%{opacity:0}100%{opacity:0}}
+    .v-combo3{animation:k-combo3 18000ms linear infinite}
+    @keyframes k-combo4{0%{opacity:0}15.55%{opacity:0}16.222%{opacity:1}18.222%{opacity:1}18.889%{opacity:0}100%{opacity:0}}
+    .v-combo4{animation:k-combo4 18000ms linear infinite}
+    @keyframes k-combo5{0%{opacity:0}18.883%{opacity:0}19.556%{opacity:1}52.667%{opacity:1}53.333%{opacity:0}100%{opacity:0}}
+    .v-combo5{animation:k-combo5 18000ms linear infinite}
+    @keyframes k-bub0{0%{opacity:0}19.439%{opacity:0}20.556%{opacity:1}27.778%{opacity:1}28.889%{opacity:0}100%{opacity:0}}
+    .v-bub0{animation:k-bub0 18000ms linear infinite}
+    @keyframes k-bub1{0%{opacity:0}30.55%{opacity:0}31.667%{opacity:1}37.778%{opacity:1}38.889%{opacity:0}100%{opacity:0}}
+    .v-bub1{animation:k-bub1 18000ms linear infinite}
+    @keyframes k-bub2{0%{opacity:0}39.439%{opacity:0}40.556%{opacity:1}44.444%{opacity:1}45.556%{opacity:0}100%{opacity:0}}
+    .v-bub2{animation:k-bub2 18000ms linear infinite}
+    @keyframes k-bub3{0%{opacity:0}46.661%{opacity:0}47.778%{opacity:1}53.333%{opacity:1}54.444%{opacity:0}100%{opacity:0}}
+    .v-bub3{animation:k-bub3 18000ms linear infinite}
+    @keyframes k-bub4{0%{opacity:0}61.661%{opacity:0}62.778%{opacity:1}71.111%{opacity:1}72.222%{opacity:0}100%{opacity:0}}
+    .v-bub4{animation:k-bub4 18000ms linear infinite}
+    @keyframes k-bub5{0%{opacity:0}81.106%{opacity:0}82.222%{opacity:1}97.778%{opacity:1}98.889%{opacity:0}100%{opacity:0}}
+    .v-bub5{animation:k-bub5 18000ms linear infinite}
+    @keyframes k-vit0{0%{opacity:0}0.778%{opacity:1}18.111%{opacity:1}18.889%{opacity:0}100%{opacity:0}}
+    .v-vit0{animation:k-vit0 18000ms linear infinite}
+    @keyframes k-vit1{0%{opacity:0}18.883%{opacity:0}19.667%{opacity:1}45.333%{opacity:1}46.111%{opacity:0}100%{opacity:0}}
+    .v-vit1{animation:k-vit1 18000ms linear infinite}
+    @keyframes k-vit2{0%{opacity:0}46.106%{opacity:0}46.889%{opacity:1}57.556%{opacity:1}58.333%{opacity:0}100%{opacity:0}}
+    .v-vit2{animation:k-vit2 18000ms linear infinite}
+    @keyframes k-vit3{0%{opacity:0}58.328%{opacity:0}59.111%{opacity:1}78.111%{opacity:1}78.889%{opacity:0}100%{opacity:0}}
+    .v-vit3{animation:k-vit3 18000ms linear infinite}
+    @keyframes k-vit4{0%{opacity:0}78.883%{opacity:0}79.667%{opacity:1}99.222%{opacity:1}100%{opacity:0}}
+    .v-vit4{animation:k-vit4 18000ms linear infinite}
+    @keyframes k-name0{0%{opacity:0}0.006%{opacity:1}59.717%{opacity:1}59.722%{opacity:0}100%{opacity:0}}
+    .v-name0{animation:k-name0 18000ms linear infinite}
+    @keyframes k-name1{0%{opacity:0}59.717%{opacity:0}59.728%{opacity:1}99.994%{opacity:1}100%{opacity:0}}
+    .v-name1{animation:k-name1 18000ms linear infinite}
+    @keyframes k-frenzy{0%{opacity:0}18.883%{opacity:0}20.111%{opacity:1}52.111%{opacity:1}53.333%{opacity:0}100%{opacity:0}}
+    .v-frenzy{animation:k-frenzy 18000ms linear infinite}
+    @keyframes k-badge-new{0%{opacity:0}31.106%{opacity:0}32.444%{opacity:1}98.667%{opacity:1}100%{opacity:0}}
+    .v-badge-new{animation:k-badge-new 18000ms linear infinite}
+    @keyframes k-star{0%{opacity:0}15.55%{opacity:0}16.444%{opacity:1}52.444%{opacity:1}53.333%{opacity:0}100%{opacity:0}}
+    .v-eyes-star{animation:k-star 18000ms linear infinite}
+    .v-mouth-o{animation:k-star 18000ms linear infinite}
+    @keyframes k-shut{0%{opacity:0}78.883%{opacity:0}80%{opacity:1}98.889%{opacity:1}100%{opacity:0}}
+    .v-eyes-shut{animation:k-shut 18000ms linear infinite}
+    .v-mouth-flat{animation:k-shut 18000ms linear infinite}
+    @keyframes k-calm{0%{opacity:1}14.667%{opacity:1}15.556%{opacity:0}53.333%{opacity:0}54.444%{opacity:1}77.778%{opacity:1}78.889%{opacity:0}100%{opacity:0}}
+    .v-eyes-calm,.v-mouth-calm{animation:k-calm 18000ms linear infinite}
+    @keyframes k-spout{0%{opacity:1}77.778%{opacity:1}78.889%{opacity:0}100%{opacity:0}}
+    .v-spout{animation:k-spout 18000ms linear infinite}
+    @keyframes k-zzz{0%{opacity:0}79.994%{opacity:0}81.333%{opacity:1}98.667%{opacity:1}100%{opacity:0}}
+    .v-zzz-wrap{animation:k-zzz 18000ms linear infinite}
     .zzz{animation:k-zzz-drift 2.6s ease-in-out infinite}
     @keyframes k-zzz-drift{0%{opacity:0;transform:translate(0,2px) scale(.8)}30%{opacity:1}100%{opacity:0;transform:translate(4px,-10px) scale(1.1)}}
-    @keyframes k-dim{0%{opacity:1}73.333%{opacity:1}77.333%{opacity:.72}98.667%{opacity:.72}100%{opacity:1}}
-    .card-dim{animation:k-dim 15000ms linear infinite}
-    @keyframes k-bounce{0%{transform:scale(1)}6.4%{transform:scale(1)}7.2%{transform:scale(1.15) rotate(-3deg)}8%{transform:scale(.95) rotate(2deg)}9.067%{transform:scale(1)}10.4%{transform:scale(1)}11.2%{transform:scale(1.15) rotate(-3deg)}12%{transform:scale(.95) rotate(2deg)}13.067%{transform:scale(1)}14.4%{transform:scale(1)}15.2%{transform:scale(1.15) rotate(-3deg)}16%{transform:scale(.95) rotate(2deg)}17.067%{transform:scale(1)}18.4%{transform:scale(1)}19.2%{transform:scale(1.15) rotate(-3deg)}20%{transform:scale(.95) rotate(2deg)}21.067%{transform:scale(1)}22.4%{transform:scale(1)}23.2%{transform:scale(1.15) rotate(-3deg)}24%{transform:scale(.95) rotate(2deg)}25.067%{transform:scale(1)}26.4%{transform:scale(1)}27.2%{transform:scale(1.15) rotate(-3deg)}28%{transform:scale(.95) rotate(2deg)}29.067%{transform:scale(1)}56.133%{transform:scale(1)}56.933%{transform:scale(1.12) rotate(2deg)}58%{transform:scale(1)}100%{transform:scale(1)}}
-    .avatar{animation:k-bounce 15000ms linear infinite}
-    @keyframes k-full{0%{transform:scaleX(0.52)}6.667%{transform:scaleX(0.58)}10.667%{transform:scaleX(0.65)}14.667%{transform:scaleX(0.72)}18.667%{transform:scaleX(0.79)}22.667%{transform:scaleX(0.86)}26.667%{transform:scaleX(0.93)}73.333%{transform:scaleX(0.98)}100%{transform:scaleX(0.82)}}
-    .g-full{transform-box:fill-box;transform-origin:left center;animation:k-full 15000ms linear infinite}
-    @keyframes k-exp{0%{transform:scaleX(0.18)}6.667%{transform:scaleX(0.24)}10.667%{transform:scaleX(0.33)}14.667%{transform:scaleX(0.42)}18.667%{transform:scaleX(0.51)}22.667%{transform:scaleX(0.6)}26.667%{transform:scaleX(0.69)}46%{transform:scaleX(0.86)}100%{transform:scaleX(0.9)}}
-    .g-exp{transform-box:fill-box;transform-origin:left center;animation:k-exp 15000ms linear infinite}
+    @keyframes k-whale{0%{opacity:0}0.006%{opacity:1}59.717%{opacity:1}59.722%{opacity:0}100%{opacity:0}}
+    .v-whale{animation:k-whale 18000ms linear infinite}
+    @keyframes k-cat{0%{opacity:0}59.717%{opacity:0}59.728%{opacity:1}99.994%{opacity:1}100%{opacity:0}}
+    .v-cat{animation:k-cat 18000ms linear infinite}
+    @keyframes k-cat-calm{0%{opacity:0}59.717%{opacity:0}59.728%{opacity:1}78.883%{opacity:1}78.889%{opacity:0}100%{opacity:0}}
+    .v-cat-calm{animation:k-cat-calm 18000ms linear infinite}
+    @keyframes k-cat-shut{0%{opacity:0}78.883%{opacity:0}80%{opacity:1}98.889%{opacity:1}100%{opacity:0}}
+    .v-cat-shut{animation:k-cat-shut 18000ms linear infinite}
+    @keyframes k-morph{0%{opacity:0}58.328%{opacity:0}58.339%{opacity:1}67.217%{opacity:1}67.222%{opacity:0}100%{opacity:0}}
+    .v-morph{animation:k-morph 18000ms linear infinite}
+    @keyframes k-flash{0%{opacity:0;transform:scale(.85)}58.333%{opacity:1;transform:scale(.85)}60.556%{opacity:1;transform:scale(1.15)}62.778%{opacity:0;transform:scale(1.25)}100%{opacity:0}}
+    .morph-flash{transform-box:fill-box;transform-origin:center;animation:k-flash 18000ms linear infinite}
+    @keyframes k-ring{0%{opacity:0;transform:scale(.85)}58.333%{opacity:1;transform:scale(.85)}60.556%{opacity:1;transform:scale(1.15)}67.222%{opacity:0;transform:scale(1.7)}100%{opacity:0}}
+    .morph-ring{transform-box:fill-box;transform-origin:center;animation:k-ring 18000ms linear infinite}
+    @keyframes k-dim{0%{opacity:1}78.889%{opacity:1}82.222%{opacity:.72}98.889%{opacity:.72}100%{opacity:1}}
+    .card-dim{animation:k-dim 18000ms linear infinite}
+    @keyframes k-bounce{0%{transform:scale(1)}5.333%{transform:scale(1)}6%{transform:scale(1.15) rotate(-3deg)}6.667%{transform:scale(.95) rotate(2deg)}7.556%{transform:scale(1)}8.667%{transform:scale(1)}9.333%{transform:scale(1.15) rotate(-3deg)}10%{transform:scale(.95) rotate(2deg)}10.889%{transform:scale(1)}12%{transform:scale(1)}12.667%{transform:scale(1.15) rotate(-3deg)}13.333%{transform:scale(.95) rotate(2deg)}14.222%{transform:scale(1)}15.333%{transform:scale(1)}16%{transform:scale(1.15) rotate(-3deg)}16.667%{transform:scale(.95) rotate(2deg)}17.556%{transform:scale(1)}18.667%{transform:scale(1)}19.333%{transform:scale(1.15) rotate(-3deg)}20%{transform:scale(.95) rotate(2deg)}20.889%{transform:scale(1)}22%{transform:scale(1)}22.667%{transform:scale(1.15) rotate(-3deg)}23.333%{transform:scale(.95) rotate(2deg)}24.222%{transform:scale(1)}46.778%{transform:scale(1)}47.444%{transform:scale(1.12) rotate(2deg)}48.333%{transform:scale(1)}58.333%{transform:scale(.85)}60.556%{transform:scale(1.15)}62.778%{transform:scale(1)}100%{transform:scale(1)}}
+    .avatar{animation:k-bounce 18000ms linear infinite}
+    @keyframes k-full{0%{transform:scaleX(0.52)}5.556%{transform:scaleX(0.58)}8.889%{transform:scaleX(0.65)}12.222%{transform:scaleX(0.72)}15.556%{transform:scaleX(0.79)}18.889%{transform:scaleX(0.86)}22.222%{transform:scaleX(0.93)}78.889%{transform:scaleX(0.98)}100%{transform:scaleX(0.82)}}
+    .g-full{transform-box:fill-box;transform-origin:left center;animation:k-full 18000ms linear infinite}
+    @keyframes k-exp{0%{transform:scaleX(0.18)}5.556%{transform:scaleX(0.24)}8.889%{transform:scaleX(0.33)}12.222%{transform:scaleX(0.42)}15.556%{transform:scaleX(0.51)}18.889%{transform:scaleX(0.6)}22.222%{transform:scaleX(0.69)}38.333%{transform:scaleX(0.86)}55.556%{transform:scaleX(1)}55.889%{transform:scaleX(0.05)}100%{transform:scaleX(0.12)}}
+    .g-exp{transform-box:fill-box;transform-origin:left center;animation:k-exp 18000ms linear infinite}
     .w-body{animation:w-bob 3.2s ease-in-out infinite}
     .w-tail{transform-origin:left center;animation:w-wag 1.6s ease-in-out infinite}
     .w-fin{transform-origin:top center;animation:w-fin 2.4s ease-in-out infinite}
@@ -130,7 +163,7 @@
     @keyframes w-blink{0%,92%,100%{transform:scaleY(1)}95%{transform:scaleY(.08)}}
     @keyframes w-spout{0%{opacity:0;transform:translateY(3px) scale(.5)}35%{opacity:1;transform:translateY(-1px) scale(1)}100%{opacity:0;transform:translateY(-6px) scale(.7)}}
     @keyframes w-sparkle{0%,100%{opacity:.35;transform:scale(.7) rotate(0)}50%{opacity:1;transform:scale(1.15) rotate(45deg)}}
-    @media (prefers-reduced-motion:reduce){*{animation:none!important}.v{opacity:0}.v-combo5,.v-eyes-star,.v-mouth-o,.v-frenzy,.v-spout,.v-vit1,.v-bub0,.v-msg0,.v-msg1,.v-msg2,.v-msg3,.v-msg4,.v-msg5{opacity:1}.f4,.fl4{opacity:1}.g-full{transform:scaleX(.9)}.g-exp{transform:scaleX(.66)}}
+    @media (prefers-reduced-motion:reduce){*{animation:none!important}.v{opacity:0}.v-combo5,.v-eyes-star,.v-mouth-o,.v-frenzy,.v-spout,.v-vit1,.v-bub0,.v-whale,.v-name0,.v-msg0,.v-msg1,.v-msg2,.v-msg3,.v-msg4,.v-msg5{opacity:1}.f4,.fl4{opacity:1}.g-full{transform:scaleX(.9)}.g-exp{transform:scaleX(.66)}}
     </style>
   </defs>
 
@@ -221,6 +254,11 @@
   <text x="833" y="246" font-size="11" fill="#eaeaea">还要摸</text>
   </g>
   <g class="v v-bub4">
+  <rect x="801" y="230" width="75" height="24" rx="12" fill="rgba(38,38,44,.94)" stroke="rgba(255,255,255,.12)"/>
+  <path d="M850 254h10l-5 6Z" fill="rgba(38,38,44,.94)"/>
+  <text x="811" y="246" font-size="11" fill="#eaeaea">我变样了！</text>
+  </g>
+  <g class="v v-bub5">
   <rect x="831.36" y="230" width="44.64" height="24" rx="12" fill="rgba(38,38,44,.94)" stroke="rgba(255,255,255,.12)"/>
   <path d="M850 254h10l-5 6Z" fill="rgba(38,38,44,.94)"/>
   <text x="841.36" y="246" font-size="11" fill="#eaeaea">Zzz…</text>
@@ -228,7 +266,7 @@
   <g class="card-dim">
   <rect x="512" y="264" width="372" height="96" rx="14" fill="rgba(22,22,26,.9)" stroke="rgba(255,255,255,.12)"/>
   <rect x="512" y="264" width="372" height="96" rx="14" class="v v-frenzy" fill="none" stroke="rgba(255,159,67,.75)" stroke-width="1.6" filter="url(#warmglow)"/>
-  <g class="avatar"><svg class="whale" x="524" y="280" width="54" height="54" viewBox="0 0 64 64" overflow="visible">
+  <g class="avatar"><g class="v v-whale"><svg class="whale" x="524" y="280" width="54" height="54" viewBox="0 0 64 64" overflow="visible">
   <g class="w-body">
     <path class="w-tail" d="M43 27C50 24.6 55 17.6 59.4 18.2 62.4 18.8 58.4 27 57.4 33C58.4 39 62.4 47.2 59.4 47.8 55 48.4 50 41.4 43 39Z" fill="url(#skin)" stroke="#2b3f9e" stroke-width="1.1"/>
     <path class="w-fin" d="M17.4 44.5C13 48.6 14.2 54.8 20 52.8 23.8 51.4 25 47.4 24.2 44Z" fill="#16226e" stroke="#2b3f9e" stroke-width="1.1"/>
@@ -260,14 +298,46 @@
     <path d="M0-3.4C.4-.9 .9-.4 3.4 0 .9 .4 .4 .9 0 3.4-.4 .9-.9 .4-3.4 0-.9-.4-.4-.9 0-3.4Z" transform="translate(6 16)"/>
     <path d="M0-2.6C.3-.7 .7-.3 2.6 0 .7 .3 .3 .7 0 2.6-.3 .7-.7 .3-2.6 0-.7-.3-.3-.7 0-2.6Z" transform="translate(54 12)"/>
   </g></g>
-</svg></g>
+</svg></g><g class="v v-cat"><svg class="whale" x="521" y="277" width="60" height="60" viewBox="0 0 64 64" overflow="visible">
+  <g class="w-body">
+    <path class="w-tail" d="M43.4 50.6C50.6 51.6 55.4 45.2 54.2 38.2C53.6 34.6 49.4 35 49.8 38.4C50.4 43.2 47.4 46.8 42.4 45.8Z" fill="url(#skin-cat)" stroke="#39429b" stroke-width="1.1"/>
+    <path class="w-fin" d="M23.6 53.6C23.6 50.4 29.4 50.4 29.4 53.6C29.4 56.4 23.6 56.4 23.6 53.6ZM34.6 53.6C34.6 50.4 40.4 50.4 40.4 53.6C40.4 56.4 34.6 56.4 34.6 53.6Z" fill="#4b58c4" stroke="#39429b" stroke-width="1.1"/>
+    <path d="M17.6 20.4 16.4 5.6 30.4 13.6Z" fill="url(#skin-cat)" stroke="#39429b" stroke-width="1.1"/>
+    <path d="M46.4 20.4 47.6 5.6 33.6 13.6Z" fill="url(#skin-cat)" stroke="#39429b" stroke-width="1.1"/>
+    <path d="M20 18.6 19.2 9.8 27 14.4Z" fill="#f7c6d9" stroke="#39429b" stroke-width=".8"/>
+    <path d="M44 18.6 44.8 9.8 37 14.4Z" fill="#f7c6d9" stroke="#39429b" stroke-width=".8"/>
+    <ellipse cx="32" cy="46" rx="13" ry="11" fill="url(#skin-cat)" stroke="#39429b" stroke-width="1.2"/>
+    <ellipse cx="32" cy="28" rx="16" ry="14" fill="url(#skin-cat)" stroke="#39429b" stroke-width="1.2"/>
+    <path d="M21.4 45.6C25.6 41.6 38.4 41.6 42.6 45.6A13 11 0 0 1 21.4 45.6Z" fill="url(#belly)"/>
+    <ellipse cx="24" cy="19.6" rx="6.2" ry="3" fill="#ffffff" opacity=".3" transform="rotate(-24 24 19.6)"/>
+    <path d="M30.6 34.6H33.4L32 36.4Z" fill="#16224d"/>
+    <path d="M14.6 32.4 22 34.2M14.8 37 22.2 36.8M49.4 32.4 42 34.2M49.2 37 41.8 36.8" fill="none" stroke="#16224d" stroke-width="1" stroke-linecap="round" opacity=".55"/>
+    <g class="w-blush" opacity=".5">
+      <ellipse cx="20.6" cy="34.2" rx="3.4" ry="2" fill="#ff86ac"/>
+      <ellipse cx="43.4" cy="34.2" rx="3.4" ry="2" fill="#ff86ac"/>
+    </g>
+    <g class="v v-cat-calm"><g class="w-eyes"><ellipse cx="25" cy="28" rx="3.99" ry="4.94" fill="#16224d"/><circle cx="23.765" cy="26.1" r="1.615" fill="#fff"/><circle cx="26.14" cy="30.09" r="0.807" fill="#fff" opacity=".75"/><ellipse cx="39" cy="28" rx="3.99" ry="4.94" fill="#16224d"/><circle cx="37.765" cy="26.1" r="1.615" fill="#fff"/><circle cx="40.14" cy="30.09" r="0.807" fill="#fff" opacity=".75"/></g></g>
+    <g class="v v-cat-shut">
+      <path d="M21.4 28C23.4 31.2 27.4 31.2 29.4 28" fill="none" stroke="#16224d" stroke-width="1.5" stroke-linecap="round"/>
+      <path d="M34.6 28C36.6 31.2 40.6 31.2 42.6 28" fill="none" stroke="#16224d" stroke-width="1.5" stroke-linecap="round"/>
+    </g>
+    <path class="v v-cat-calm w-mouth" d="M28.2 37.2C29.6 39.6 32 39.6 32 37.6C32 39.6 34.4 39.6 35.8 37.2" fill="none" stroke="#16224d" stroke-width="1.5" stroke-linecap="round"/>
+    <path class="v v-cat-shut" d="M29.4 38C30.6 38 33.4 38 34.6 38" fill="none" stroke="#16224d" stroke-width="1.5" stroke-linecap="round"/>
+  </g>
+</svg></g></g>
+  <g class="v v-morph">
+  <circle class="morph-flash" cx="551" cy="307" r="43" fill="url(#flash)"/>
+  <circle class="morph-ring" cx="551" cy="307" r="43" fill="none" stroke="rgba(255,255,255,.9)" stroke-width="2"/>
+  </g>
   <g class="v v-zzz-wrap"><text class="zzz" x="572" y="282" font-size="14">💤</text></g>
-  <text x="588" y="284" font-size="12" font-weight="600" fill="#eaeaea">深深 · Lv.6 成年</text>
+  <text x="588" y="284" class="v v-name0" font-size="12" font-weight="600" fill="#eaeaea">深深 · Lv.9 成年</text>
+  <text x="588" y="284" class="v v-name1" font-size="12" font-weight="600" fill="#eaeaea">深深 · Lv.10 代码猫</text>
   <text x="588" y="301" font-size="10" fill="#a9a9b2">消耗 22.6k · 🥕2.1k 🐟8.0k 🍖12.5k</text>
   <text x="588" y="316" class="v v-vit0" font-size="11" fill="#a9a9b2">😐 68 · ⚡ 91</text>
   <text x="588" y="316" class="v v-vit1" font-size="11" fill="#a9a9b2">😊 78 · ⚡ 74</text>
   <text x="588" y="316" class="v v-vit2" font-size="11" fill="#a9a9b2">😄 90 · ⚡ 66</text>
-  <text x="588" y="316" class="v v-vit3" font-size="11" fill="#a9a9b2">😴 86 · ⚡ 98</text>
+  <text x="588" y="316" class="v v-vit3" font-size="11" fill="#a9a9b2">🤩 96 · ⚡ 61</text>
+  <text x="588" y="316" class="v v-vit4" font-size="11" fill="#a9a9b2">😴 86 · ⚡ 98</text>
   <rect x="588" y="324" width="190" height="4" rx="2" fill="rgba(255,255,255,.14)"/>
   <g class="grow g-full"><rect x="588" y="324" width="190" height="4" rx="2" fill="#ff9f43"/></g>
   <rect x="588" y="333" width="190" height="4" rx="2" fill="rgba(255,255,255,.14)"/>
@@ -281,18 +351,20 @@
   <text x="848" y="309" font-size="15" fill="#eaeaea">🏅</text>
   </g>
   <text class="food f0" x="551" y="311" font-size="22" text-anchor="middle">🥕</text>
-  <text class="float fl0" x="518" y="260" font-size="13" font-weight="700" fill="#fff">+8 🥕 · 240 tok  +1 ⭐</text>
+  <text class="float fl0" x="518" y="260" font-size="13" font-weight="700" fill="#fff">+8 🥕 · 240 tok  +2 ⭐</text>
   <text class="food f1" x="551" y="311" font-size="22" text-anchor="middle">🐟</text>
-  <text class="float fl1" x="518" y="260" font-size="13" font-weight="700" fill="#fff">+11 🐟 · 1.8k tok  +3 ⭐</text>
+  <text class="float fl1" x="518" y="260" font-size="13" font-weight="700" fill="#fff">+11 🐟 · 1.8k tok  +4 ⭐</text>
   <text class="food f2" x="551" y="311" font-size="22" text-anchor="middle">🍖</text>
-  <text class="float fl2" x="518" y="260" font-size="15" font-weight="700" fill="#ffd34d">+17 🍖 · 1.2k tok  +5 ⭐</text>
+  <text class="float fl2" x="518" y="260" font-size="15" font-weight="700" fill="#ffd34d">+17 🍖 · 1.2k tok  +6 ⭐</text>
   <text class="food f3" x="551" y="311" font-size="30" text-anchor="middle">🍗</text>
-  <text class="float fl3" x="518" y="260" font-size="15" font-weight="700" fill="#ffd34d">+21 🍗 · 4.4k tok  +7 ⭐</text>
+  <text class="float fl3" x="518" y="260" font-size="15" font-weight="700" fill="#ffd34d">+21 🍗 · 4.4k tok  +9 ⭐</text>
   <text class="food f4" x="551" y="311" font-size="38" text-anchor="middle">🍲</text>
-  <text class="float fl4" x="518" y="260" font-size="18" font-weight="700" fill="url(#rainbow)">+26 🍲 · 12.6k tok  +9 ⭐</text>
+  <text class="float fl4" x="518" y="260" font-size="18" font-weight="700" fill="url(#rainbow)">+26 🍲 · 12.6k tok  +11 ⭐</text>
   <text class="food f5" x="551" y="311" font-size="30" text-anchor="middle">🍖</text>
-  <text class="float fl5" x="518" y="260" font-size="18" font-weight="700" fill="url(#rainbow)">+21 🍖 · 3.1k tok  +22 ⭐</text>
+  <text class="float fl5" x="518" y="260" font-size="18" font-weight="700" fill="url(#rainbow)">+21 🍖 · 3.1k tok  +24 ⭐</text>
   <text class="float nt0" x="518" y="260" font-size="18" font-weight="700" fill="url(#rainbow)">成就 · 满连击</text>
   <text class="float nt1" x="518" y="260" font-size="15" font-weight="700" fill="#ffd34d">任务达成 · 今日喂食 10 次</text>
   <text class="float nt2" x="518" y="260" font-size="13" font-weight="700" fill="#fff">💗 摸摸头</text>
+  <text class="float nt3" x="518" y="260" font-size="15" font-weight="700" fill="#ffd34d">进阶 · 传说金鲸</text>
+  <text class="float nt4" x="518" y="260" font-size="18" font-weight="700" fill="url(#rainbow)">进化 · 代码猫</text>
 </svg>

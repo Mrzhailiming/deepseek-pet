@@ -13,10 +13,10 @@
 你和 Agent 干活的每一步，它都在右下角吃东西 —— 你发消息喂 🥕、模型回一句喂 🐟、工具跑完一次喂 🍖。
 工具循环越密，Combo 越高，特效越夸张，鲸鱼会变**星星眼**。
 
-<img src="docs/demo.svg" width="820" alt="Agent 干活时，食物从会话区飞向鲸鱼，连击一路涨到彩虹、开暴食、解锁成就，最后它睡着了">
+<img src="docs/demo.svg" width="820" alt="Agent 干活时，食物从会话区飞向鲸鱼，连击一路涨到彩虹、开暴食、解锁成就，养到 Lv.10 分化成代码猫，最后它睡着了">
 
-<sub>一轮工具循环：连击顶到 ×3.0 开暴食 🔥×2、解锁成就、摸摸头，闲下来就睡了（💤）。<br>
-这张图是 <a href="docs/make-demo.mjs">docs/make-demo.mjs</a> 拿插件里同一套路径和 keyframes 画出来的，改玩法就 <code>node docs/make-demo.mjs</code> 重出一张。</sub>
+<sub>一轮工具循环：连击顶到 ×3.0 开暴食 🔥×2、解锁成就、摸摸头、升到 Lv.10 变身成 🐱 代码猫，闲下来就睡了（💤）。<br>
+这张图是 <a href="docs/make-demo.mjs">docs/make-demo.mjs</a> 拿插件里同一套路径和 keyframes 画出来的，改玩法就 <code>node docs/make-demo.mjs</code> 重出一张；复核用 <code>node docs/check-demo.mjs</code>。</sub>
 
 装它不用改 dsh 仓库的一个字节，也不用重新构建前端。
 
@@ -39,7 +39,7 @@ pnpm dsh web                                         # 起 Web
 装别人给你的 tarball 也一样（见 [打包分发](#打包分发)）：
 
 ```sh
-pnpm dsh plugin --profile web add ./dsh-pet-plugin-0.3.0.tgz
+pnpm dsh plugin --profile web add ./dsh-pet-plugin-0.4.0.tgz
 ```
 
 卸载：
@@ -77,7 +77,7 @@ node test/smoke.mjs
 
 <img src="docs/preview.png" width="700" alt="三档连击表现：平时 / 连击 / 星星眼">
 
-Agent 干活就是在喂它：**Combo 与暴食、挑食、心情精力与睡眠、情绪三维、技能树、宠物记忆、几句真的有用的提醒、14 枚成就与每日任务、按等级变形态、摸头拖动与本地存档** —— 一整份玩法清单在 [`dsh-pet-plugin/plugin.md` 的「玩法」](dsh-pet-plugin/plugin.md#玩法)。
+Agent 干活就是在喂它：**Combo 与暴食、挑食、心情精力与睡眠、情绪三维、技能树、宠物记忆、几句真的有用的提醒、14 枚成就与每日任务、按等级变形态、按技能分化进化（🐱🦊🐦🪲）、摸头拖动与本地存档** —— 一整份玩法清单在 [`dsh-pet-plugin/plugin.md` 的「玩法」](dsh-pet-plugin/plugin.md#玩法)。
 
 想改宠物名字 / 连击窗口 / 食物量 / 关掉特效，或者想知道它是怎么在不改宿主仓库的前提下接上去的、事件从哪来、Combo 怎么算、鲸鱼怎么画的 —— 同一份文档里也都有。
 
