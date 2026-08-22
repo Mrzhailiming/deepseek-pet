@@ -720,7 +720,7 @@ const synced = overlayState()
 assert.equal(synced.pet.level, 9, '应当采纳别的标签页的存档')
 assert.equal(synced.totalTokens, 88888)
 assert.equal(synced.snacks, 2, '零食格数也跟着别的标签页走')
-assert.equal(synced.pet.name, '深深', '名字仍然来自配置，不被存档覆盖')
+assert.equal(synced.pet.name, '深深', '名字仍然来自存档，不被配置覆盖')
 // 无关的键、坏数据、removeItem（newValue = null）都不该动状态。
 fireWindow('storage', { key: 'unrelated', newValue: '{"v":2}' })
 fireWindow('storage', { key: STATE_KEY, newValue: '{oops' })
@@ -744,7 +744,7 @@ assert.equal(restored.totalFeeds, 7)
 assert.equal(restored.totalTokens, 1234)
 assert.deepEqual(restored.tokensBySource, { user_input: 4, generation: 1200, tool_result: 30 })
 assert.equal(restored.pet.hunger, 30, `离线 10 分钟应当回升 20 点饥饿，实际 ${restored.pet.hunger}`)
-assert.equal(restored.pet.name, '深深', '名字来自配置而不是存档')
+assert.equal(restored.pet.name, '大肥鱼', 'v1 存档没有名字，回落到配置默认名')
 // 离线期间零食照攒：10 分钟够回 13 格，上限就是格数上限。
 assert.equal(restored.snacks, SNACK_MAX, `离线 10 分钟应当攒满零食，实际 ${restored.snacks}`)
 
@@ -864,7 +864,8 @@ function stageCase(level, exp = 0) {
     boot,
     card,
     whale: whaleNode.type(whaleNode.props),
-    name: findNode(card, n => n.props?.className === 'dshpet-name').children.join(''),
+    name: findNode(card, n => n.props?.className === 'dshpet-name')
+      .children.filter(c => typeof c === 'string').join(''),
   }
 }
 
@@ -885,7 +886,7 @@ for (const stage of STAGES) {
   const got = stageCase(stage.level)
   assert.equal(got.card.props['data-stage'], stage.key, `Lv.${stage.level} 的形态标记不对`)
   assert.equal(
-    got.name, `深深 · Lv.${stage.level} ${stage.label}`,
+    got.name, `大肥鱼 · Lv.${stage.level} ${stage.label}`,
     `Lv.${stage.level} 的名字行不对: ${got.name}`,
   )
   assert.match(
@@ -2544,7 +2545,8 @@ try {
       card,
       node,
       whale: node.type(node.props),
-      name: findNode(card, n => n.props?.className === 'dshpet-name').children.join(''),
+      name: findNode(card, n => n.props?.className === 'dshpet-name')
+        .children.filter(c => typeof c === 'string').join(''),
       stage: card.props['data-stage'],
       title: card.props.title,
     }
@@ -2615,7 +2617,7 @@ try {
     assert.equal(got.stage, row.key, `${row.skill} 领先应当分化成 ${row.key}，实际 ${got.stage}`)
     assert.equal(boot.readState().pet.form, row.key, `${row.key}：pet.form 应当写上`)
     assert.equal(
-      got.name, `深深 · Lv.10 ${row.label}`, `${row.key} 的名字行不对: ${got.name}`,
+      got.name, `大肥鱼 · Lv.10 ${row.label}`, `${row.key} 的名字行不对: ${got.name}`,
     )
     assert.match(
       ariaOf(got.whale), new RegExp(row.label),

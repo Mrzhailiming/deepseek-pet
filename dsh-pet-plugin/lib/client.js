@@ -217,7 +217,7 @@ window.__ModuleLoader__.load({
       // 离线饥饿最多按这么长时间结算（默认 24h），也顺手兜住系统时钟乱跳
       offlineRegenCapMs: 86400000,
       // 宠物外观：DeepSeek 二次元小鲸
-      petName: "深深",
+      petName: "大肥鱼",
       petSpecies: "深海小鲸",
       // "whale" 用内联 SVG 画二次元鲸鱼；"emoji" 退回 petIcon 那个字形
       petAvatar: "whale",
@@ -283,7 +283,10 @@ window.__ModuleLoader__.load({
       // 成就解锁
       { id: "ach_5",     egg: "forest",  test: function (g) { return g.achievementsUnlockedAllTime >= 5; } },
       { id: "ach_10",    egg: "code",    test: function (g) { return g.achievementsUnlockedAllTime >= 10; } },
-      { id: "ach_all",   egg: "rainbow", test: function (g) { return g.achievementsUnlockedAllTime >= 20; } },
+      // 集齐**全部**成就才给彩虹蛋。门槛跟成就表走、不写死数字：
+      // 将来成就表加了条目，这个门槛自动跟着涨。旧值 20 比成就表（14 枚）大，
+      // 永远触发不了，等于这条里程碑形同虚设。
+      { id: "ach_all",   egg: "rainbow", test: function (g) { return g.achievementsUnlockedAllTime >= ACHIEVEMENTS.length; } },
       // 宠物收集
       { id: "pets_3",    egg: "spark",   test: function (g) { return g.petsHatched >= 3; } },
       { id: "pets_5",    egg: "circuit", test: function (g) { return g.petsHatched >= 5; } },
@@ -361,6 +364,11 @@ window.__ModuleLoader__.load({
      *   gold     描边换成金色并加粗（传说档）。
      * minLevel 从小到大排，whaleStageOf 从后往前找第一个够得上的。
      */
+    // 鲸鱼娘 28 帧 APNG 精灵（base64 内联，由 scripts/integrate-apng.mjs 生成）
+    // 鲸鱼娘 28 帧 APNG 精灵（base64 内联，由 scripts/integrate-apng.mjs 生成）
+    // 鲸鱼娘 28 帧 APNG 精灵（base64 内联，由 scripts/integrate-apng.mjs 生成）
+    // 鲸鱼娘 28 帧 APNG 精灵（base64 内联，由 scripts/integrate-apng.mjs 生成）
+    // 鲸鱼娘 28 帧 APNG 精灵（base64 内联，由 scripts/integrate-apng.mjs 生成）
     // 鲸鱼娘 28 帧 APNG 精灵（base64 内联，由 scripts/integrate-apng.mjs 生成）
     // 鲸鱼娘 28 帧 APNG 精灵（base64 内联，由 scripts/integrate-apng.mjs 生成）
     // 鲸鱼娘 28 帧 APNG 精灵（base64 内联，由 scripts/integrate-apng.mjs 生成）
@@ -1577,8 +1585,10 @@ window.__ModuleLoader__.load({
       /* 立绘为主 + 收纳面板（新 UI）：默认只见宠物，其余信息收进 popover */
       ".dshpet-card{padding:10px;border-radius:22px}",
       ".dshpet-card .dshpet-whale-sprite{width:192px!important;height:192px!important;border-radius:20px}",
-      ".dshpet-card .dshpet-whale-sprite-bob{animation:dshpet-whale-bob 3.2s ease-in-out infinite}",
-      "@keyframes dshpet-whale-bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}",
+      ".dshpet-card .dshpet-whale-sprite-bob{animation:dshpet-sprite-bob 3.2s ease-in-out infinite}",
+      // 精灵底座的浮动用专门的名字：和下方 SVG 部件的 dshpet-whale-bob 是两个动画，
+      // 同名的话后定义的会整条覆盖先定义的（CSS keyframes 同名后者生效）。
+      "@keyframes dshpet-sprite-bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}",
       ".dshpet-menu-btn{position:absolute;top:6px;right:6px;width:28px;height:28px;padding:0;border-radius:50%;border:1px solid rgba(255,255,255,.10);background:rgba(255,255,255,.05);color:#cfd3dc;font-size:14px;line-height:1;cursor:pointer;z-index:3;opacity:.65}",
       ".dshpet-menu-btn:hover{opacity:1;background:rgba(255,255,255,.12)}",
       ".dshpet-card[data-detail-open=true] .dshpet-menu-btn{opacity:1;background:rgba(242,199,68,.22);border-color:rgba(242,199,68,.85);color:#F2C744}",
@@ -1592,6 +1602,14 @@ window.__ModuleLoader__.load({
       ".dshpet-panel-head-title{font-size:13px;font-weight:700;color:var(--dsw-alias-label-primary,#f2f2f2)}",
       ".dshpet-close-btn{width:22px;height:22px;padding:0;border:none;border-radius:50%;background:rgba(255,255,255,.10);color:#cfd3dc;font-size:12px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0}",
       ".dshpet-close-btn:hover{background:rgba(255,255,255,.22);color:#fff}",
+      /* 改名：名字行内小铅笔 + 内联输入行 */
+      ".dshpet-rename-btn{background:none;border:none;cursor:pointer;font-size:11px;padding:0 2px;color:#a9a9b2;line-height:1;vertical-align:middle}",
+      ".dshpet-rename-btn:hover{color:#4d6bfe}",
+      ".dshpet-rename-row{display:flex;gap:6px;align-items:center;margin-top:4px}",
+      ".dshpet-rename-input{flex:1;min-width:0;box-sizing:border-box;border:1px solid rgba(255,255,255,.2);border-radius:6px;background:rgba(255,255,255,.06);color:#eaeaea;font-size:12px;padding:4px 8px;outline:none}",
+      ".dshpet-rename-input:focus{border-color:#4d6bfe}",
+      ".dshpet-rename-ok{background:#4d6bfe;color:#fff;border:none;border-radius:6px;padding:4px 12px;font-size:12px;cursor:pointer;flex-shrink:0}",
+      ".dshpet-rename-ok:hover{background:#2740c9}",
       ".dshpet-sprite-eat,.dshpet-sprite-pat{position:absolute;left:0;top:0;display:none}",
       ".dshpet-eating .dshpet-sprite-eat,.dshpet-patted .dshpet-sprite-pat{display:block}",
       ".dshpet-whale{display:block;width:44px;height:44px;overflow:visible}",
@@ -1904,6 +1922,7 @@ window.__ModuleLoader__.load({
       ".dshpet-card[data-tier=gold],.dshpet-card[data-tier=epic],",
       ".dshpet-whale-body,.dshpet-whale-tail,.dshpet-whale-fin,.dshpet-whale-eyes,",
       ".dshpet-whale-spout,.dshpet-whale-sparkle,.dshpet-whale-brow,.dshpet-patted,",
+      ".dshpet-whale-sprite-bob,",
       ".dshpet-eating .dshpet-whale-mouth,.dshpet-eating .dshpet-whale-blush,",
       /* 小动作在这个偏好下根本不会被触发（trackEyes 之外 store 也不排它），
          这几条是双保险：万一存档里留着一个 data-idle，也别动。 */
@@ -1958,11 +1977,15 @@ window.__ModuleLoader__.load({
       ".dshpet-egg-label{font-size:9px;color:#666;margin-top:2px}",
       ".dshpet-egg-close{position:absolute;top:6px;right:8px;background:none;border:none;",
       "font-size:14px;cursor:pointer;color:#999}",
-      ".dshpet-hatch-overlay{position:absolute;inset:0;z-index:20;",
+      ".dshpet-hatch-overlay{position:absolute;top:-9999px;left:-9999px;right:-9999px;bottom:-9999px;z-index:20;",
       "display:flex;align-items:center;justify-content:center;",
-      "background:rgba(0,0,0,.3);border-radius:10px}",
-      ".dshpet-hatch-dialog{background:#fff;border-radius:12px;padding:16px;text-align:center;",
-      "min-width:180px;box-shadow:0 8px 24px rgba(0,0,0,.15)}",
+      "background:rgba(0,0,0,.3)}",
+      ".dshpet-hatch-dialog{position:relative;z-index:1;background:#fff;border-radius:12px;padding:16px;text-align:center;",
+      "min-width:200px;box-shadow:0 8px 24px rgba(0,0,0,.15)}",
+      /* 添加宠物：面板式展开（与成就面板同款），卡片上方弹出，显式可点 */
+      ".dshpet-addpet-dialog{position:absolute;bottom:calc(100% + 8px);right:0;z-index:20;pointer-events:auto;",
+      "background:#fff;border-radius:12px;padding:14px;text-align:center;min-width:220px;",
+      "box-shadow:0 8px 24px rgba(0,0,0,.18);border:1px solid rgba(0,0,0,.08)}",
       ".dshpet-hatch-title{font-size:13px;font-weight:600;margin-bottom:8px}",
       ".dshpet-hatch-preview{font-size:36px;margin:8px 0}",
       ".dshpet-hatch-species{font-size:11px;color:#666;margin-bottom:8px}",
@@ -2852,7 +2875,7 @@ window.__ModuleLoader__.load({
       return {
         id: typeof raw.id === "string" ? raw.id : generatePetId(),
         species: typeof raw.species === "string" && PET_SPECIES[raw.species] ? raw.species : "whale",
-        name: typeof raw.name === "string" && raw.name.length > 0 ? raw.name.slice(0, 20) : "深深",
+        name: typeof raw.name === "string" && raw.name.length > 0 ? raw.name.slice(0, 20) : "大肥鱼",
         avatar: typeof raw.avatar === "string" ? raw.avatar : "whale",
         icon: typeof raw.icon === "string" ? raw.icon : "🐳",
         bornAt: numberIn(raw.bornAt, 0, Number.MAX_SAFE_INTEGER, Date.now()),
@@ -4922,6 +4945,21 @@ window.__ModuleLoader__.load({
         openAddPet: function () {
           commit({ addPetOpen: !state.addPetOpen, panelOpen: false, eggPanelOpen: false }, true);
         },
+        /** 给当前宠物改名（1-20 字，空名忽略）。改名会写入存档。 */
+        renamePet: function (name) {
+          var trimmed = String(name === null || name === undefined ? "" : name).trim().slice(0, 20);
+          if (trimmed === "") return false;
+          activeRecord.name = trimmed;
+          saveActiveToCollection();
+          var newState = stateFromRecord(activeRecord);
+          newState.panelOpen = state.panelOpen;
+          newState.eggPanelOpen = state.eggPanelOpen;
+          newState.addPetOpen = state.addPetOpen;
+          state = newState;
+          persist.schedule();
+          listeners.forEach(function (listener) { listener(); });
+          return true;
+        },
         getCollection: function () { return collection; },
         getEggs: function () { return eggs; },
         getGlobalStats: function () { return globalStats; },
@@ -5575,13 +5613,14 @@ window.__ModuleLoader__.load({
       var setSpecies = speciesHook[1];
       var nameRef = React.useRef("");
 
+      // 面板式展开（和成就/任务面板同款）：在卡片上方弹出，显式 pointer-events:auto，
+      // 不依赖全屏遮罩——宿主对插件根的 pointer-events 约束不会影响这里。
       return h("div", {
-        className: "dshpet-hatch-overlay",
+        className: "dshpet-addpet-dialog",
         onClick: function (e) { stopBubbling(e); },
         onPointerDown: function (e) { e.stopPropagation(); }
       },
-        h("div", { className: "dshpet-hatch-dialog dshpet-addpet-dialog" },
-          h("div", { className: "dshpet-hatch-title" }, "添加宠物"),
+        h("div", { className: "dshpet-hatch-title" }, "添加宠物"),
           h("div", { className: "dshpet-addpet-grid" },
             speciesKeys.map(function (key) {
               var sp = PET_SPECIES[key];
@@ -5624,7 +5663,6 @@ window.__ModuleLoader__.load({
               onClick: function (e) { stopBubbling(e); store.openAddPet(); }
             }, "取消")
           )
-        )
       );
     }
 
@@ -5644,6 +5682,13 @@ window.__ModuleLoader__.load({
         var popoverUpHook = React.useState(false);
         var popoverUp = popoverUpHook[0];
         var setPopoverUp = popoverUpHook[1];
+        // 改名：是否显示输入框 + 输入值。
+        var renameOpenHook = React.useState(false);
+        var renameOpen = renameOpenHook[0];
+        var setRenameOpen = renameOpenHook[1];
+        var renameValHook = React.useState("");
+        var renameVal = renameValHook[0];
+        var setRenameVal = renameValHook[1];
 
         React.useEffect(function () {
           // 订阅前后各读一次，避免 mount 与首次 feed 之间的窗口丢状态。
@@ -5833,7 +5878,10 @@ window.__ModuleLoader__.load({
               // 收纳面板：所有非立绘信息都收在这（默认 CSS 隐藏，点 ··· 展开）。
               h(
                 "div",
-                { className: "dshpet-popover" + (popoverUp ? " dshpet-popover-up" : "") },
+                { className: "dshpet-popover" + (popoverUp ? " dshpet-popover-up" : ""),
+                  // 面板内点击不冒泡到卡片：卡片 onClick 会折叠 meta，输入框会被一起关掉。
+                  onClick: function (event) { stopBubbling(event); },
+                  onPointerDown: function (event) { event.stopPropagation(); } },
                 // 头部：标题 + 关闭按钮（重新排版后信息从这收口）。
                 h("div", { className: "dshpet-popover-head" },
                   h("span", { className: "dshpet-popover-title" }, "宠物详情"),
@@ -5862,8 +5910,46 @@ window.__ModuleLoader__.load({
                         "aria-label": store.isFavorite() ? "取消收藏" : "收藏",
                         onClick: function (event) { stopBubbling(event); store.toggleFavorite(); }
                       }, store.isFavorite() ? "★" : "☆")
-                      : null
+                      : null,
+                    // 改名按钮：打开内联输入框
+                    h("button", {
+                      className: "dshpet-rename-btn",
+                      type: "button",
+                      "aria-label": renameOpen ? "收起改名" : "改名",
+                      title: "改名",
+                      onClick: function (event) {
+                        stopBubbling(event);
+                        setRenameVal(pet.name);
+                        setRenameOpen(!renameOpen);
+                      }
+                    }, "✏️")
                   ),
+                  // 改名输入行：回车或点确定生效
+                  renameOpen
+                    ? h("div", { className: "dshpet-rename-row" },
+                      h("input", {
+                        className: "dshpet-rename-input",
+                        type: "text",
+                        value: renameVal,
+                        maxLength: 20,
+                        placeholder: "新名字（20 字内）",
+                        onChange: function (event) { setRenameVal(event.target.value); },
+                        onKeyDown: function (event) {
+                          if (event.key === "Enter") {
+                            event.stopPropagation();
+                            if (store.renamePet(renameVal)) setRenameOpen(false);
+                          }
+                        }
+                      }),
+                      h("button", {
+                        className: "dshpet-rename-ok",
+                        type: "button",
+                        onClick: function (event) {
+                          stopBubbling(event);
+                          if (store.renamePet(renameVal)) setRenameOpen(false);
+                        }
+                      }, "确定"))
+                    : null,
                   // 点指示器
                   state.petCount > 1
                     ? h("div", { className: "dshpet-dots" },
