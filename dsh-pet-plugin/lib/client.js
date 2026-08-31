@@ -1858,6 +1858,9 @@ window.__ModuleLoader__.load({
       "border-bottom:1px solid var(--dsw-alias-border-l2,rgba(255,255,255,.12))}",
       /* 提示（「这文件你改到第 3 次了」）不是日常台词：给一道暖色左边框，
          让「它在说一件跟你手上的活有关的事」一眼可辨。 */
+      /* combo 徽标是 .dshpet-stage 的兄弟，气泡绝对定位到 stage 上方，两者重叠。
+         combo 存在时把气泡再往上推一截（combo 高度 ~22–28px + gap 6px）。 */
+      ".dshpet-combo+.dshpet-stage .dshpet-bubble{margin-bottom:40px}",
       ".dshpet-bubble[data-kind=advice]{border-left:3px solid #ffd34d;",
       "white-space:normal;font-weight:600}",
       /* 关怀与闲聊（「这么晚还在写代码？」「又是 client.js 啊」）：也不是日常
@@ -2240,7 +2243,29 @@ window.__ModuleLoader__.load({
       ".dshpet-addpet-species:hover{border-color:#4d6bfe;background:#f0f4ff}",
       ".dshpet-addpet-species[data-selected]{border-color:#4d6bfe;background:#eef2ff;box-shadow:0 0 0 2px rgba(77,107,254,.2)}",
       ".dshpet-addpet-icon{font-size:20px}",
-      ".dshpet-addpet-label{font-size:9px;color:#666}"
+      ".dshpet-addpet-label{font-size:9px;color:#666}",
+      ".dshpet-gm-btn{background:none;border:1px solid #d0d0d8;cursor:pointer;font-size:12px;",
+      "width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;",
+      "color:#888;transition:all .15s;line-height:1}",
+      ".dshpet-gm-btn:hover{border-color:#ff6b00;color:#ff6b00;background:rgba(255,107,0,.06)}",
+      ".dshpet-gm-btn[data-open]{border-color:#ff6b00;color:#ff6b00}",
+      ".dshpet-gm{pointer-events:auto;position:absolute;bottom:100%;right:0;width:240px;max-height:400px;overflow-y:auto;",
+      "background:var(--dsw-alias-bg-layer-2,rgba(22,22,26,.94));",
+      "border:1px solid var(--dsw-alias-border-l2,rgba(255,255,255,.12));",
+      "border-radius:14px;padding:10px;margin-bottom:8px;box-shadow:var(--dsw-shadow-lv3,0 6px 24px rgba(0,0,0,.35));",
+      "font-size:12px;z-index:10;cursor:default}",
+      ".dshpet-gm-title{font-weight:700;font-size:13px;margin-bottom:8px;display:flex;",
+      "align-items:center;justify-content:space-between;color:var(--dsw-alias-label-primary,#222)}",
+      ".dshpet-gm-section{margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid var(--dsw-alias-border,#f0f0f3)}",
+      ".dshpet-gm-section:last-child{border-bottom:none;margin-bottom:0;padding-bottom:0}",
+      ".dshpet-gm-label{font-size:11px;color:var(--dsw-alias-label-secondary,#888);margin-bottom:4px}",
+      ".dshpet-gm-row{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:4px}",
+      ".dshpet-gm-act{border:none;border-radius:5px;padding:3px 8px;font-size:11px;cursor:pointer;",
+      "background:var(--dsw-alias-bg-tertiary,rgba(255,255,255,.08));color:var(--dsw-alias-label-primary,#eaeaea);transition:all .12s}",
+      ".dshpet-gm-act:hover{background:#ff6b00;color:#fff}",
+      ".dshpet-gm-act[data-danger]{color:#e53935}",
+      ".dshpet-gm-act[data-danger]:hover{background:#e53935;color:#fff}",
+      ".dshpet-gm-stat{font-size:10px;color:var(--dsw-alias-label-tertiary,#aaa);line-height:1.6}"
     ].join("");
 
     /** 注入一次样式表；与 tsdown 的 css-modules 内联插件同一个惯例。 */
@@ -5597,6 +5622,77 @@ window.__ModuleLoader__.load({
           return true;
         },
 
+        // ─── GM 控制台 ───
+        gm: {
+          setLevel: function (n) {
+            var lv = Math.max(1, Math.floor(n));
+            var pet = Object.assign({}, state.pet, { level: lv, exp: 0 });
+            activeRecord.pet = { hunger: pet.hunger, exp: 0, level: lv, mood: pet.mood, energy: pet.energy, curiosity: pet.curiosity, pride: pet.pride, concern: pet.concern, form: pet.form };
+            commit({ pet: pet });
+          },
+          addExp: function (n) {
+            var amount = Math.max(0, Math.floor(n));
+            var pet = feedPet(state.pet, 0, amount, 0, 0);
+            activeRecord.pet = { hunger: pet.hunger, exp: pet.exp, level: pet.level, mood: pet.mood, energy: pet.energy, curiosity: pet.curiosity, pride: pet.pride, concern: pet.concern, form: pet.form };
+            commit({ pet: pet });
+          },
+          setHunger: function (n) {
+            var v = clamp(Math.floor(n), 0, 100);
+            commit({ pet: Object.assign({}, state.pet, { hunger: v }) });
+          },
+          setMood: function (n) {
+            var v = clamp(Math.floor(n), 0, 100);
+            commit({ pet: Object.assign({}, state.pet, { mood: v }) });
+          },
+          setEnergy: function (n) {
+            var v = clamp(Math.floor(n), 0, 100);
+            commit({ pet: Object.assign({}, state.pet, { energy: v }) });
+          },
+          fillSnacks: function () {
+            commit({ snacks: config.manualSnackMax });
+          },
+          unlockAllAchievements: function () {
+            var ids = [];
+            for (var i = 0; i < ACHIEVEMENTS.length; i++) ids.push(ACHIEVEMENTS[i].id);
+            commit({ achievements: ids });
+          },
+          grantEggs: function () {
+            var now = Date.now();
+            for (var i = 0; i < EGG_TYPES.length; i++) {
+              if (eggs.length >= MAX_EGGS) break;
+              eggs.push({
+                id: "egg-" + now.toString(36) + Math.random().toString(36).slice(2, 4),
+                type: EGG_TYPES[i].key,
+                obtainedAt: now
+              });
+            }
+            commit({ eggs: eggs.slice() });
+          },
+          reset: function () {
+            try {
+              window.localStorage.removeItem(STATE_KEY);
+              window.localStorage.removeItem(CONFIG_KEY);
+            } catch (e) {}
+            persist.dispose();
+            window.location.reload();
+          },
+          simulateFeed: function (tokens) {
+            var tk = tokens || 1000;
+            var now = Date.now();
+            var pet = settleVitals(now);
+            var food = clamp(Math.round(foodFromTokens(tk, config)), config.minFood, config.maxFood);
+            var prestigeBonus = 1 + (state.prestige || 0) * config.prestigeExpBonus;
+            var exp = Math.max(1, Math.floor(BASE_EXP.generation * prestigeBonus + 0.5));
+            pet = feedPet(pet, food, exp, config.moodPerFeed, -config.energyPerFeed);
+            commit({
+              pet: pet,
+              totalFeeds: state.totalFeeds + 1,
+              totalTokens: state.totalTokens + tk,
+              lastFeedAt: now
+            });
+          }
+        },
+
         /** 卸载时把进度落盘、停掉悬空的定时器、摘掉窗口监听。 */
         dispose: function () {
           if (comboTimer !== 0) clearTimeout(comboTimer);
@@ -5855,8 +5951,9 @@ window.__ModuleLoader__.load({
 
     function FeedEffect(props) {
       var effect = props.effect;
-      // 同时存在多条时横向错开，避免完全重叠。
-      var offset = (props.index % 4) * 11;
+      // 同时存在多条时横向 + 纵向错开，避免重叠。
+      var offset = (props.index % 5) * 22;
+      var vOffset = (props.index % 3) * 18;
       var flight = effect.flight || LOCAL_FLIGHT;
       var foodStyle = { left: String(14 + offset) + "px" };
       // 落点仍是宠物，只有起点被挪到会话区；位移经自定义属性交给 keyframe。
@@ -5876,7 +5973,7 @@ window.__ModuleLoader__.load({
         h("span", {
           className: "dshpet-float",
           "data-tier": effect.tier,
-          style: { left: String(44 + offset) + "px" }
+          style: { left: String(44 + offset) + "px", bottom: String(26 + vOffset) + "px" }
         }, effect.text
           // 通知类特效（目前只有进阶）自带整句文案，没有食物量可报，
           // 走这一支就不拼「+N 食物 · X tok +M ⭐」那套数字了。
@@ -6303,6 +6400,108 @@ window.__ModuleLoader__.load({
       );
     }
 
+    function renderGmPanel(state, config, store, setGmOpen) {
+      var pet = state.pet;
+      var expNeed = pet.level * EXP_PER_LEVEL;
+      return h("div", {
+        className: "dshpet-gm",
+        onClick: function (e) { stopBubbling(e); },
+        onPointerDown: function (e) { e.stopPropagation(); }
+      },
+        h("div", { className: "dshpet-gm-title" },
+          "GM 控制台",
+          h("button", {
+            className: "dshpet-close-btn", type: "button",
+            onClick: function (e) { stopBubbling(e); setGmOpen(false); }
+          }, "✕")
+        ),
+        h("div", { className: "dshpet-gm-stat" },
+          "Lv." + pet.level + " | EXP " + pet.exp + "/" + expNeed
+          + " | 饱食 " + (100 - pet.hunger) + " | 心情 " + pet.mood
+          + " | 精力 " + pet.energy
+          + " | 零食 " + state.snacks + "/" + config.manualSnackMax
+          + " | 成就 " + state.achievements.length + "/" + ACHIEVEMENTS.length
+          + " | 蛋 " + state.eggs.length
+        ),
+        h("div", { className: "dshpet-gm-section" },
+          h("div", { className: "dshpet-gm-label" }, "等级 / 经验"),
+          h("div", { className: "dshpet-gm-row" },
+            h("button", { className: "dshpet-gm-act", type: "button",
+              onClick: function (e) { stopBubbling(e); store.gm.setLevel(pet.level + 1); }
+            }, "等级+1"),
+            h("button", { className: "dshpet-gm-act", type: "button",
+              onClick: function (e) { stopBubbling(e); store.gm.setLevel(pet.level + 10); }
+            }, "等级+10"),
+            h("button", { className: "dshpet-gm-act", type: "button",
+              onClick: function (e) { stopBubbling(e); store.gm.setLevel(99); }
+            }, "等级=99"),
+            h("button", { className: "dshpet-gm-act", type: "button",
+              onClick: function (e) { stopBubbling(e); store.gm.addExp(100); }
+            }, "EXP+100"),
+            h("button", { className: "dshpet-gm-act", type: "button",
+              onClick: function (e) { stopBubbling(e); store.gm.addExp(1000); }
+            }, "EXP+1000")
+          )
+        ),
+        h("div", { className: "dshpet-gm-section" },
+          h("div", { className: "dshpet-gm-label" }, "数值"),
+          h("div", { className: "dshpet-gm-row" },
+            h("button", { className: "dshpet-gm-act", type: "button",
+              onClick: function (e) { stopBubbling(e); store.gm.setHunger(0); }
+            }, "吃饱"),
+            h("button", { className: "dshpet-gm-act", type: "button",
+              onClick: function (e) { stopBubbling(e); store.gm.setHunger(100); }
+            }, "饿到底"),
+            h("button", { className: "dshpet-gm-act", type: "button",
+              onClick: function (e) { stopBubbling(e); store.gm.setMood(100); }
+            }, "心情满"),
+            h("button", { className: "dshpet-gm-act", type: "button",
+              onClick: function (e) { stopBubbling(e); store.gm.setMood(0); }
+            }, "心情空"),
+            h("button", { className: "dshpet-gm-act", type: "button",
+              onClick: function (e) { stopBubbling(e); store.gm.setEnergy(100); }
+            }, "精力满"),
+            h("button", { className: "dshpet-gm-act", type: "button",
+              onClick: function (e) { stopBubbling(e); store.gm.setEnergy(0); }
+            }, "精力空")
+          )
+        ),
+        h("div", { className: "dshpet-gm-section" },
+          h("div", { className: "dshpet-gm-label" }, "物品 / 成就"),
+          h("div", { className: "dshpet-gm-row" },
+            h("button", { className: "dshpet-gm-act", type: "button",
+              onClick: function (e) { stopBubbling(e); store.gm.fillSnacks(); }
+            }, "零食填满"),
+            h("button", { className: "dshpet-gm-act", type: "button",
+              onClick: function (e) { stopBubbling(e); store.gm.unlockAllAchievements(); }
+            }, "全成就"),
+            h("button", { className: "dshpet-gm-act", type: "button",
+              onClick: function (e) { stopBubbling(e); store.gm.grantEggs(); }
+            }, "送蛋×6")
+          )
+        ),
+        h("div", { className: "dshpet-gm-section" },
+          h("div", { className: "dshpet-gm-label" }, "模拟 / 重置"),
+          h("div", { className: "dshpet-gm-row" },
+            h("button", { className: "dshpet-gm-act", type: "button",
+              onClick: function (e) { stopBubbling(e); store.gm.simulateFeed(1000); }
+            }, "喂食1k"),
+            h("button", { className: "dshpet-gm-act", type: "button",
+              onClick: function (e) { stopBubbling(e); store.gm.simulateFeed(10000); }
+            }, "喂食10k"),
+            h("button", { className: "dshpet-gm-act", type: "button", "data-danger": "true",
+              onClick: function (e) {
+                stopBubbling(e);
+                if (window.confirm("确定要重置所有宠物数据吗？此操作不可撤销！")) {
+                  store.gm.reset();
+                }
+              }
+            }, "重置全部")
+          )
+        )
+      );
+    }
+
     function createPetOverlay(store, config) {
       return function PetOverlay() {
         var stateHook = React.useState(function () { return store.getState(); });
@@ -6326,6 +6525,9 @@ window.__ModuleLoader__.load({
         var renameValHook = React.useState("");
         var renameVal = renameValHook[0];
         var setRenameVal = renameValHook[1];
+        var gmOpenHook = React.useState(false);
+        var gmOpen = gmOpenHook[0];
+        var setGmOpen = gmOpenHook[1];
 
         React.useEffect(function () {
           var prev = store.getState();
@@ -6440,6 +6642,7 @@ window.__ModuleLoader__.load({
             { className: "dshpet-stage" },
             renderBubble(state),
             state.panelOpen ? renderPanel(state, config, store) : null,
+            gmOpen ? renderGmPanel(state, config, store, setGmOpen) : null,
             h(
               "div",
               {
@@ -6741,6 +6944,20 @@ window.__ModuleLoader__.load({
                   store.openAddPet();
                 }
               }, "+"),
+              // GM 控制台按钮
+              h("button", {
+                className: "dshpet-gm-btn",
+                type: "button",
+                "data-open": gmOpen ? "true" : undefined,
+                title: "GM 控制台",
+                "aria-label": "GM 控制台",
+                onClick: function (event) {
+                  stopBubbling(event);
+                  setDetailOpen(false);
+                  if (state.panelOpen) store.togglePanel();
+                  setGmOpen(!gmOpen);
+                }
+              }, "GM"),
               // 蛋按钮：有蛋才显示
               state.eggs.length > 0
                 ? h("button", {
@@ -6766,8 +6983,8 @@ window.__ModuleLoader__.load({
                   "aria-expanded": state.panelOpen ? "true" : "false",
                   onClick: function (event) {
                     stopBubbling(event);
-                    // 收起收纳面板再开成就面板（两者互斥，避免浮层重叠）。
                     setDetailOpen(false);
+                    setGmOpen(false);
                     store.togglePanel();
                   }
                 }, BADGE_ICON)
@@ -6788,8 +7005,8 @@ window.__ModuleLoader__.load({
                     var rect = cardEl.getBoundingClientRect();
                     up = (window.innerHeight - rect.bottom) < 320;
                   }
-                  // 成就/任务面板开着时先收起它（两者互斥，避免浮层重叠）。
                   if (state.panelOpen) store.togglePanel();
+                  setGmOpen(false);
                   setPopoverUp(up);
                   setDetailOpen(!detailOpen);
                 }

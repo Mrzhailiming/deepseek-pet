@@ -169,6 +169,9 @@
       "border-bottom:1px solid var(--dsw-alias-border-l2,rgba(255,255,255,.12))}",
       /* 提示（「这文件你改到第 3 次了」）不是日常台词：给一道暖色左边框，
          让「它在说一件跟你手上的活有关的事」一眼可辨。 */
+      /* combo 徽标是 .dshpet-stage 的兄弟，气泡绝对定位到 stage 上方，两者重叠。
+         combo 存在时把气泡再往上推一截（combo 高度 ~22–28px + gap 6px）。 */
+      ".dshpet-combo+.dshpet-stage .dshpet-bubble{margin-bottom:40px}",
       ".dshpet-bubble[data-kind=advice]{border-left:3px solid #ffd34d;",
       "white-space:normal;font-weight:600}",
       /* 关怀与闲聊（「这么晚还在写代码？」「又是 client.js 啊」）：也不是日常
@@ -551,7 +554,29 @@
       ".dshpet-addpet-species:hover{border-color:#4d6bfe;background:#f0f4ff}",
       ".dshpet-addpet-species[data-selected]{border-color:#4d6bfe;background:#eef2ff;box-shadow:0 0 0 2px rgba(77,107,254,.2)}",
       ".dshpet-addpet-icon{font-size:20px}",
-      ".dshpet-addpet-label{font-size:9px;color:#666}"
+      ".dshpet-addpet-label{font-size:9px;color:#666}",
+      ".dshpet-gm-btn{background:none;border:1px solid #d0d0d8;cursor:pointer;font-size:12px;",
+      "width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;",
+      "color:#888;transition:all .15s;line-height:1}",
+      ".dshpet-gm-btn:hover{border-color:#ff6b00;color:#ff6b00;background:rgba(255,107,0,.06)}",
+      ".dshpet-gm-btn[data-open]{border-color:#ff6b00;color:#ff6b00}",
+      ".dshpet-gm{pointer-events:auto;position:absolute;bottom:100%;right:0;width:240px;max-height:400px;overflow-y:auto;",
+      "background:var(--dsw-alias-bg-layer-2,rgba(22,22,26,.94));",
+      "border:1px solid var(--dsw-alias-border-l2,rgba(255,255,255,.12));",
+      "border-radius:14px;padding:10px;margin-bottom:8px;box-shadow:var(--dsw-shadow-lv3,0 6px 24px rgba(0,0,0,.35));",
+      "font-size:12px;z-index:10;cursor:default}",
+      ".dshpet-gm-title{font-weight:700;font-size:13px;margin-bottom:8px;display:flex;",
+      "align-items:center;justify-content:space-between;color:var(--dsw-alias-label-primary,#222)}",
+      ".dshpet-gm-section{margin-bottom:8px;padding-bottom:6px;border-bottom:1px solid var(--dsw-alias-border,#f0f0f3)}",
+      ".dshpet-gm-section:last-child{border-bottom:none;margin-bottom:0;padding-bottom:0}",
+      ".dshpet-gm-label{font-size:11px;color:var(--dsw-alias-label-secondary,#888);margin-bottom:4px}",
+      ".dshpet-gm-row{display:flex;flex-wrap:wrap;gap:4px;margin-bottom:4px}",
+      ".dshpet-gm-act{border:none;border-radius:5px;padding:3px 8px;font-size:11px;cursor:pointer;",
+      "background:var(--dsw-alias-bg-tertiary,rgba(255,255,255,.08));color:var(--dsw-alias-label-primary,#eaeaea);transition:all .12s}",
+      ".dshpet-gm-act:hover{background:#ff6b00;color:#fff}",
+      ".dshpet-gm-act[data-danger]{color:#e53935}",
+      ".dshpet-gm-act[data-danger]:hover{background:#e53935;color:#fff}",
+      ".dshpet-gm-stat{font-size:10px;color:var(--dsw-alias-label-tertiary,#aaa);line-height:1.6}"
     ].join("");
 
     /** 注入一次样式表；与 tsdown 的 css-modules 内联插件同一个惯例。 */

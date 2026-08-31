@@ -203,8 +203,9 @@
 
     function FeedEffect(props) {
       var effect = props.effect;
-      // 同时存在多条时横向错开，避免完全重叠。
-      var offset = (props.index % 4) * 11;
+      // 同时存在多条时横向 + 纵向错开，避免重叠。
+      var offset = (props.index % 5) * 22;
+      var vOffset = (props.index % 3) * 18;
       var flight = effect.flight || LOCAL_FLIGHT;
       var foodStyle = { left: String(14 + offset) + "px" };
       // 落点仍是宠物，只有起点被挪到会话区；位移经自定义属性交给 keyframe。
@@ -224,7 +225,7 @@
         h("span", {
           className: "dshpet-float",
           "data-tier": effect.tier,
-          style: { left: String(44 + offset) + "px" }
+          style: { left: String(44 + offset) + "px", bottom: String(26 + vOffset) + "px" }
         }, effect.text
           // 通知类特效（目前只有进阶）自带整句文案，没有食物量可报，
           // 走这一支就不拼「+N 食物 · X tok +M ⭐」那套数字了。
@@ -651,6 +652,108 @@
       );
     }
 
+    function renderGmPanel(state, config, store, setGmOpen) {
+      var pet = state.pet;
+      var expNeed = pet.level * EXP_PER_LEVEL;
+      return h("div", {
+        className: "dshpet-gm",
+        onClick: function (e) { stopBubbling(e); },
+        onPointerDown: function (e) { e.stopPropagation(); }
+      },
+        h("div", { className: "dshpet-gm-title" },
+          "GM 控制台",
+          h("button", {
+            className: "dshpet-close-btn", type: "button",
+            onClick: function (e) { stopBubbling(e); setGmOpen(false); }
+          }, "✕")
+        ),
+        h("div", { className: "dshpet-gm-stat" },
+          "Lv." + pet.level + " | EXP " + pet.exp + "/" + expNeed
+          + " | 饱食 " + (100 - pet.hunger) + " | 心情 " + pet.mood
+          + " | 精力 " + pet.energy
+          + " | 零食 " + state.snacks + "/" + config.manualSnackMax
+          + " | 成就 " + state.achievements.length + "/" + ACHIEVEMENTS.length
+          + " | 蛋 " + state.eggs.length
+        ),
+        h("div", { className: "dshpet-gm-section" },
+          h("div", { className: "dshpet-gm-label" }, "等级 / 经验"),
+          h("div", { className: "dshpet-gm-row" },
+            h("button", { className: "dshpet-gm-act", type: "button",
+              onClick: function (e) { stopBubbling(e); store.gm.setLevel(pet.level + 1); }
+            }, "等级+1"),
+            h("button", { className: "dshpet-gm-act", type: "button",
+              onClick: function (e) { stopBubbling(e); store.gm.setLevel(pet.level + 10); }
+            }, "等级+10"),
+            h("button", { className: "dshpet-gm-act", type: "button",
+              onClick: function (e) { stopBubbling(e); store.gm.setLevel(99); }
+            }, "等级=99"),
+            h("button", { className: "dshpet-gm-act", type: "button",
+              onClick: function (e) { stopBubbling(e); store.gm.addExp(100); }
+            }, "EXP+100"),
+            h("button", { className: "dshpet-gm-act", type: "button",
+              onClick: function (e) { stopBubbling(e); store.gm.addExp(1000); }
+            }, "EXP+1000")
+          )
+        ),
+        h("div", { className: "dshpet-gm-section" },
+          h("div", { className: "dshpet-gm-label" }, "数值"),
+          h("div", { className: "dshpet-gm-row" },
+            h("button", { className: "dshpet-gm-act", type: "button",
+              onClick: function (e) { stopBubbling(e); store.gm.setHunger(0); }
+            }, "吃饱"),
+            h("button", { className: "dshpet-gm-act", type: "button",
+              onClick: function (e) { stopBubbling(e); store.gm.setHunger(100); }
+            }, "饿到底"),
+            h("button", { className: "dshpet-gm-act", type: "button",
+              onClick: function (e) { stopBubbling(e); store.gm.setMood(100); }
+            }, "心情满"),
+            h("button", { className: "dshpet-gm-act", type: "button",
+              onClick: function (e) { stopBubbling(e); store.gm.setMood(0); }
+            }, "心情空"),
+            h("button", { className: "dshpet-gm-act", type: "button",
+              onClick: function (e) { stopBubbling(e); store.gm.setEnergy(100); }
+            }, "精力满"),
+            h("button", { className: "dshpet-gm-act", type: "button",
+              onClick: function (e) { stopBubbling(e); store.gm.setEnergy(0); }
+            }, "精力空")
+          )
+        ),
+        h("div", { className: "dshpet-gm-section" },
+          h("div", { className: "dshpet-gm-label" }, "物品 / 成就"),
+          h("div", { className: "dshpet-gm-row" },
+            h("button", { className: "dshpet-gm-act", type: "button",
+              onClick: function (e) { stopBubbling(e); store.gm.fillSnacks(); }
+            }, "零食填满"),
+            h("button", { className: "dshpet-gm-act", type: "button",
+              onClick: function (e) { stopBubbling(e); store.gm.unlockAllAchievements(); }
+            }, "全成就"),
+            h("button", { className: "dshpet-gm-act", type: "button",
+              onClick: function (e) { stopBubbling(e); store.gm.grantEggs(); }
+            }, "送蛋×6")
+          )
+        ),
+        h("div", { className: "dshpet-gm-section" },
+          h("div", { className: "dshpet-gm-label" }, "模拟 / 重置"),
+          h("div", { className: "dshpet-gm-row" },
+            h("button", { className: "dshpet-gm-act", type: "button",
+              onClick: function (e) { stopBubbling(e); store.gm.simulateFeed(1000); }
+            }, "喂食1k"),
+            h("button", { className: "dshpet-gm-act", type: "button",
+              onClick: function (e) { stopBubbling(e); store.gm.simulateFeed(10000); }
+            }, "喂食10k"),
+            h("button", { className: "dshpet-gm-act", type: "button", "data-danger": "true",
+              onClick: function (e) {
+                stopBubbling(e);
+                if (window.confirm("确定要重置所有宠物数据吗？此操作不可撤销！")) {
+                  store.gm.reset();
+                }
+              }
+            }, "重置全部")
+          )
+        )
+      );
+    }
+
     function createPetOverlay(store, config) {
       return function PetOverlay() {
         var stateHook = React.useState(function () { return store.getState(); });
@@ -674,6 +777,9 @@
         var renameValHook = React.useState("");
         var renameVal = renameValHook[0];
         var setRenameVal = renameValHook[1];
+        var gmOpenHook = React.useState(false);
+        var gmOpen = gmOpenHook[0];
+        var setGmOpen = gmOpenHook[1];
 
         React.useEffect(function () {
           var prev = store.getState();
@@ -788,6 +894,7 @@
             { className: "dshpet-stage" },
             renderBubble(state),
             state.panelOpen ? renderPanel(state, config, store) : null,
+            gmOpen ? renderGmPanel(state, config, store, setGmOpen) : null,
             h(
               "div",
               {
@@ -1089,6 +1196,20 @@
                   store.openAddPet();
                 }
               }, "+"),
+              // GM 控制台按钮
+              h("button", {
+                className: "dshpet-gm-btn",
+                type: "button",
+                "data-open": gmOpen ? "true" : undefined,
+                title: "GM 控制台",
+                "aria-label": "GM 控制台",
+                onClick: function (event) {
+                  stopBubbling(event);
+                  setDetailOpen(false);
+                  if (state.panelOpen) store.togglePanel();
+                  setGmOpen(!gmOpen);
+                }
+              }, "GM"),
               // 蛋按钮：有蛋才显示
               state.eggs.length > 0
                 ? h("button", {
@@ -1114,8 +1235,8 @@
                   "aria-expanded": state.panelOpen ? "true" : "false",
                   onClick: function (event) {
                     stopBubbling(event);
-                    // 收起收纳面板再开成就面板（两者互斥，避免浮层重叠）。
                     setDetailOpen(false);
+                    setGmOpen(false);
                     store.togglePanel();
                   }
                 }, BADGE_ICON)
@@ -1136,8 +1257,8 @@
                     var rect = cardEl.getBoundingClientRect();
                     up = (window.innerHeight - rect.bottom) < 320;
                   }
-                  // 成就/任务面板开着时先收起它（两者互斥，避免浮层重叠）。
                   if (state.panelOpen) store.togglePanel();
+                  setGmOpen(false);
                   setPopoverUp(up);
                   setDetailOpen(!detailOpen);
                 }

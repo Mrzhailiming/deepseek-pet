@@ -2010,6 +2010,77 @@
           return true;
         },
 
+        // ─── GM 控制台 ───
+        gm: {
+          setLevel: function (n) {
+            var lv = Math.max(1, Math.floor(n));
+            var pet = Object.assign({}, state.pet, { level: lv, exp: 0 });
+            activeRecord.pet = { hunger: pet.hunger, exp: 0, level: lv, mood: pet.mood, energy: pet.energy, curiosity: pet.curiosity, pride: pet.pride, concern: pet.concern, form: pet.form };
+            commit({ pet: pet });
+          },
+          addExp: function (n) {
+            var amount = Math.max(0, Math.floor(n));
+            var pet = feedPet(state.pet, 0, amount, 0, 0);
+            activeRecord.pet = { hunger: pet.hunger, exp: pet.exp, level: pet.level, mood: pet.mood, energy: pet.energy, curiosity: pet.curiosity, pride: pet.pride, concern: pet.concern, form: pet.form };
+            commit({ pet: pet });
+          },
+          setHunger: function (n) {
+            var v = clamp(Math.floor(n), 0, 100);
+            commit({ pet: Object.assign({}, state.pet, { hunger: v }) });
+          },
+          setMood: function (n) {
+            var v = clamp(Math.floor(n), 0, 100);
+            commit({ pet: Object.assign({}, state.pet, { mood: v }) });
+          },
+          setEnergy: function (n) {
+            var v = clamp(Math.floor(n), 0, 100);
+            commit({ pet: Object.assign({}, state.pet, { energy: v }) });
+          },
+          fillSnacks: function () {
+            commit({ snacks: config.manualSnackMax });
+          },
+          unlockAllAchievements: function () {
+            var ids = [];
+            for (var i = 0; i < ACHIEVEMENTS.length; i++) ids.push(ACHIEVEMENTS[i].id);
+            commit({ achievements: ids });
+          },
+          grantEggs: function () {
+            var now = Date.now();
+            for (var i = 0; i < EGG_TYPES.length; i++) {
+              if (eggs.length >= MAX_EGGS) break;
+              eggs.push({
+                id: "egg-" + now.toString(36) + Math.random().toString(36).slice(2, 4),
+                type: EGG_TYPES[i].key,
+                obtainedAt: now
+              });
+            }
+            commit({ eggs: eggs.slice() });
+          },
+          reset: function () {
+            try {
+              window.localStorage.removeItem(STATE_KEY);
+              window.localStorage.removeItem(CONFIG_KEY);
+            } catch (e) {}
+            persist.dispose();
+            window.location.reload();
+          },
+          simulateFeed: function (tokens) {
+            var tk = tokens || 1000;
+            var now = Date.now();
+            var pet = settleVitals(now);
+            var food = clamp(Math.round(foodFromTokens(tk, config)), config.minFood, config.maxFood);
+            var prestigeBonus = 1 + (state.prestige || 0) * config.prestigeExpBonus;
+            var exp = Math.max(1, Math.floor(BASE_EXP.generation * prestigeBonus + 0.5));
+            pet = feedPet(pet, food, exp, config.moodPerFeed, -config.energyPerFeed);
+            commit({
+              pet: pet,
+              totalFeeds: state.totalFeeds + 1,
+              totalTokens: state.totalTokens + tk,
+              lastFeedAt: now
+            });
+          }
+        },
+
         /** 卸载时把进度落盘、停掉悬空的定时器、摘掉窗口监听。 */
         dispose: function () {
           if (comboTimer !== 0) clearTimeout(comboTimer);
