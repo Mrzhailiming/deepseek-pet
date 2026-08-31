@@ -1,6 +1,22 @@
     //#region 配置
 
-    /** 策划里的配置项默认值。浏览器 entry 不携带 cordis 的 config，所以这里是常量表。 */
+    /**
+     * @typedef {import('../types').PetConfig} PetConfig
+     * @typedef {import('../types').PetState} PetState
+     * @typedef {import('../types').StoreState} StoreState
+     * @typedef {import('../types').PetStore} PetStore
+     * @typedef {import('../types').Skills} Skills
+     * @typedef {import('../types').SkillRecord} SkillRecord
+     * @typedef {import('../types').PetMemory} PetMemory
+     * @typedef {import('../types').DailyProgress} DailyProgress
+     * @typedef {import('../types').Egg} Egg
+     * @typedef {import('../types').PetRecord} PetRecord
+     * @typedef {import('../types').GlobalStats} GlobalStats
+     * @typedef {import('../types').FeedEffectData} FeedEffectData
+     * @typedef {import('../types').Look} Look
+     */
+
+    /** @type {PetConfig} 策划里的配置项默认值。浏览器 entry 不携带 cordis 的 config，所以这里是常量表。 */
     var DEFAULTS = {
       // pet.auto_feed.*
       enabled: true,

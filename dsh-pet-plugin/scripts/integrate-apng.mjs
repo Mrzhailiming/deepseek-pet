@@ -21,13 +21,15 @@ if (files.length === 0) {
   process.exit(1)
 }
 
-const entries = files.map(f =>
-  `    "${f}":"data:image/png;base64,${readFileSync(join(apngDir, f)).toString('base64')}"`
-)
+const obj = {}
+for (const f of files) {
+  obj[f] = `data:image/png;base64,${readFileSync(join(apngDir, f)).toString('base64')}`
+}
+const json = JSON.stringify(obj)
 
 const content =
   '    // 鲸鱼娘 ' + files.length + ' 帧 APNG 精灵（base64 内联，由 scripts/integrate-apng.mjs 生成）\n' +
-  '    var SPRITES = {\n' + entries.join(',\n') + '\n    };\n'
+  "    var SPRITES = JSON.parse('" + json + "');\n"
 
 writeFileSync(spritesPath, content)
 console.log('✓ SPRITES 已写入 lib/src/sprites.js（' + files.length + ' 帧，' + (content.length / 1024).toFixed(0) + ' KiB）')

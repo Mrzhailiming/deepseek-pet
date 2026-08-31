@@ -197,6 +197,10 @@
      * @param props - { effect, index }。
      * @returns 特效节点。
      */
+    var MemoFeedEffect = typeof React.memo === "function"
+      ? React.memo(FeedEffect)
+      : FeedEffect;
+
     function FeedEffect(props) {
       var effect = props.effect;
       // 同时存在多条时横向错开，避免完全重叠。
@@ -649,7 +653,7 @@
 
     function createPetOverlay(store, config) {
       return function PetOverlay() {
-        var stateHook = React.useState(store.getState());
+        var stateHook = React.useState(function () { return store.getState(); });
         var state = stateHook[0];
         var setState = stateHook[1];
         var collapsedHook = React.useState(false);
@@ -672,16 +676,41 @@
         var setRenameVal = renameValHook[1];
 
         React.useEffect(function () {
-          // 订阅前后各读一次，避免 mount 与首次 feed 之间的窗口丢状态。
-          setState(store.getState());
-          return store.subscribe(function () { setState(store.getState()); });
+          var prev = store.getState();
+          setState(prev);
+          return store.subscribe(function () {
+            var next = store.getState();
+            if (next !== prev) { prev = next; setState(next); }
+          });
         }, []);
 
         React.useEffect(function () {
-          // 饥饿回升本身是喂食时惰性结算的；这个低频 tick 只是为了让空闲时
-          // 的饱食度进度条也会动。挂在组件上，卸载即停。
-          var timer = setInterval(store.tick, 10000);
-          return function () { clearInterval(timer); };
+          var timer = 0;
+          function start() {
+            if (timer === 0) timer = setInterval(store.tick, 10000);
+          }
+          function stop() {
+            if (timer !== 0) { clearInterval(timer); timer = 0; }
+          }
+          function onVisChange() {
+            if (typeof document === "undefined") return;
+            if (document.visibilityState === "hidden") {
+              stop();
+            } else {
+              store.tick();
+              start();
+            }
+          }
+          start();
+          if (typeof document !== "undefined" && typeof document.addEventListener === "function") {
+            document.addEventListener("visibilitychange", onVisChange);
+          }
+          return function () {
+            stop();
+            if (typeof document !== "undefined" && typeof document.removeEventListener === "function") {
+              document.removeEventListener("visibilitychange", onVisChange);
+            }
+          };
         }, []);
 
         React.useEffect(function () {
@@ -691,13 +720,13 @@
         }, []);
 
         React.useEffect(function () {
-          if (state.miniGame === null || state.miniGame.finished) return;
+          if (state.miniGame == null || state.miniGame.finished) return;
           var remaining = state.miniGame.deadline - Date.now();
           if (remaining <= 0) { store.failMiniGame(); return; }
           var timer = setTimeout(function () { store.failMiniGame(); }, remaining);
           return function () { clearTimeout(timer); };
-        }, [state.miniGame === null ? null : state.miniGame.current,
-            state.miniGame === null ? null : state.miniGame.finished]);
+        }, [state.miniGame == null ? null : state.miniGame.current,
+            state.miniGame == null ? null : state.miniGame.finished]);
 
         var pet = state.pet;
         var fullness = 100 - pet.hunger;
@@ -1118,13 +1147,13 @@
               "div",
               { className: "dshpet-fx" },
               state.effects.map(function (effect, index) {
-                return h(FeedEffect, { key: effect.key, effect: effect, index: index });
+                return h(MemoFeedEffect, { key: effect.key, effect: effect, index: index });
               })
             ),
             state.eggPanelOpen ? renderEggPanel(state, store) : null,
             state.hatchingEgg ? renderHatchDialog(state, store) : null,
             state.addPetOpen ? h(AddPetDialog, { store: store }) : null,
-            state.miniGame !== null
+            state.miniGame != null
               ? h("div", { className: "dshpet-minigame" },
                 state.miniGame.targets.map(function (target) {
                   return h("span", {

@@ -1058,21 +1058,46 @@
       };
     }
 
+    var _stateCache = { parsed: null, ready: false };
+
+    function prewarmStateCache() {
+      if (_stateCache.ready) return;
+      if (typeof window === "undefined") return;
+      var doRead = function () {
+        try {
+          var raw = window.localStorage.getItem(STATE_KEY);
+          if (typeof raw === "string") _stateCache.parsed = JSON.parse(raw);
+        } catch (e) {}
+        _stateCache.ready = true;
+      };
+      if (typeof window.requestIdleCallback === "function") {
+        window.requestIdleCallback(doRead);
+      } else {
+        doRead();
+      }
+    }
+
     function loadSavedStateV2(config) {
       if (!config.persist) return freshV2State(config);
-      var raw = null;
-      try {
-        raw = window.localStorage.getItem(STATE_KEY);
-      } catch (error) {
-        return freshV2State(config);
-      }
-      if (typeof raw !== "string") return freshV2State(config);
-      var parsed;
-      try {
-        parsed = JSON.parse(raw);
-      } catch (error) {
-        console.warn("[dsh-pet-plugin] " + STATE_KEY + " 不是合法 JSON，已当作新宠物");
-        return freshV2State(config);
+      var parsed = null;
+      if (_stateCache.ready && _stateCache.parsed !== null) {
+        parsed = _stateCache.parsed;
+        _stateCache.parsed = null;
+        _stateCache.ready = false;
+      } else {
+        var raw = null;
+        try {
+          raw = window.localStorage.getItem(STATE_KEY);
+        } catch (error) {
+          return freshV2State(config);
+        }
+        if (typeof raw !== "string") return freshV2State(config);
+        try {
+          parsed = JSON.parse(raw);
+        } catch (error) {
+          console.warn("[dsh-pet-plugin] " + STATE_KEY + " 不是合法 JSON，已当作新宠物");
+          return freshV2State(config);
+        }
       }
       if (parsed === null || typeof parsed !== "object") return freshV2State(config);
       if (parsed.v === 2) return sanitizeSavedV2(parsed, config);

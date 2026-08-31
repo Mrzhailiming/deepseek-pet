@@ -9,6 +9,7 @@
      * @param ctx - client 根 context。
      */
     function apply(ctx) {
+      prewarmStateCache();
       var config = resolveConfig();
       if (!config.enabled) return;
 

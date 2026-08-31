@@ -19,7 +19,7 @@ const effects = []
 const react = {
   Fragment: Symbol('Fragment'),
   createElement: (type, props, ...children) => ({ type, props, children }),
-  useState: initial => [initial, () => {}],
+  useState: initial => [typeof initial === "function" ? initial() : initial, () => {}],
   useEffect: (fn) => { effects.push(fn) },
 }
 
@@ -230,8 +230,9 @@ function stateOf(component) {
   let captured
   const original = react.useState
   react.useState = (initial) => {
-    if (captured === undefined) captured = initial
-    return [initial, () => {}]
+    var val = typeof initial === "function" ? initial() : initial
+    if (captured === undefined) captured = val
+    return [val, () => {}]
   }
   try {
     component({})

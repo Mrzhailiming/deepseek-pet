@@ -2,92 +2,103 @@
     //#region 状态源
 
     /**
+     * 拖拽状态管理器。从 createPetStore 里独立出来：拖拽是纯 UI 交互，
+     * 不依赖宠物数值 / 气泡 / 技能等任何游戏状态，只读写自己的两个变量。
+     * @returns 拖拽句柄。
+     */
+    function createDragManager() {
+      var moved = false;
+      var from = null;
+      return {
+        begin: function (x, y, pos) {
+          from = { x: x, y: y, dx: pos.dx, dy: pos.dy };
+          moved = false;
+        },
+        move: function (x, y, currentPos) {
+          if (from === null) return null;
+          var next = clampPos({
+            dx: from.dx + (x - from.x),
+            dy: from.dy + (y - from.y)
+          });
+          if (next.dx === currentPos.dx && next.dy === currentPos.dy) return null;
+          if (Math.abs(x - from.x) + Math.abs(y - from.y) > 4) moved = true;
+          return next;
+        },
+        end: function () {
+          if (from === null) return false;
+          from = null;
+          return true;
+        },
+        consumeDrag: function () {
+          var was = moved;
+          moved = false;
+          return was;
+        },
+        active: function () { return from !== null; }
+      };
+    }
+
+    /**
      * 宠物 + 特效的可观察状态源。整个插件一份，Definition 写、overlay 组件读。
      * @param config - 生效配置。
      * @returns 状态源句柄。
      */
     function createPetStore(config) {
       var listeners = new Set();
+
+      // ─── 连击与特效 ───
       var combo = createComboTracker(config);
       var comboTimer = 0;
       var effectSeq = 0;
-      /** 上次结算三条数值（饥饿 / 心情 / 精力）的时刻；0 表示还没结算过。 */
+      var buffTimer = 0;
+
+      // ─── 数值结算（饥饿 / 心情 / 精力） ───
       var lastRegenAt = 0;
-      /** 回升的小数余额。hunger 必须保持整数（界面直接把它渲染成数字）。 */
       var hungerCarry = 0;
-      /** 心情 / 精力的小数余额，同理。 */
       var moodCarry = 0;
       var energyCarry = 0;
-      /** 情绪三维的小数余额（三维共用一份衰减速率，但各自攒余额）。 */
       var dimCarry = { curiosity: 0, pride: 0, concern: 0 };
-      /** 当前那一格零食开始回充的时刻；0 表示还没起算。 */
       var snackAt = 0;
-      /** 气泡：上一次说话的时刻（限流用）、撤台词的定时器、挑台词的种子。 */
+
+      // ─── 气泡与台词 ───
       var lastBubbleAt = 0;
       var bubbleTimer = 0;
       var bubbleSeq = 0;
-      /** 上一句是不是情绪三维那三句（垫场话，谁都能顶掉它，见 emitBubble）。 */
       var lastBubbleDim = false;
-      /**
-       * 每个场合上一次取到的台词下标（场合 → 下标）。pickLineIndex 靠它做到
-       * 「同一句永不连着出现两次」；按场合分开记，否则两个场合会互相干扰。
-       */
       var lineAt = {};
-      /** 上一次摸头的时刻（冷却用）。 */
+
+      // ─── 互动（摸头 / 小动作） ───
       var patAt = 0;
-      /** 这一串连着摸的第几下（换台词用；断了就归 1）。 */
       var patRun = 0;
-      /** 上一次演小动作的时刻、抽小动作用的种子、撤小动作的定时器。 */
       var idleAt = 0;
       var idleSeq = 0;
       var idleTimer = 0;
-      /** 上一次抽到的小动作下标（pickLineIndex 的「上一句」）。 */
       var idleLast = -1;
-      /** 暴食 BUFF 到期的定时器。 */
-      var buffTimer = 0;
-      /** 连着吃的是哪一种、吃了几口（食性偏好用；纯瞬时态，不落盘）。 */
+
+      // ─── 食性偏好 ───
       var tasteSource = null;
       var tasteCount = 0;
-      /** 上一次说提示的时刻（提示自己的冷却，比气泡限流更长）。 */
+
+      // ─── 提示与关怀 ───
       var adviceAt = 0;
-      /**
-       * 本次会话里每个文件被改了几次（basename → 次数）。
-       *
-       * 刻意**不落盘**：「你今天已经改它三次了」说的是当下这段活，跨天记账会
-       * 变成一句陈年旧账。
-       */
       var sessionEdits = {};
-      /** 连着几条工具结果报错了、上一条报错的是哪个工具（都是瞬时态）。 */
       var errorStreak = 0;
       var lastErrorTool = null;
-      /** 同一个工具连着挂了几次（换个工具就归零）。 */
       var toolFailStreak = 0;
-      /** 上一次说关怀 / 闲聊的时刻（care 自己的冷却，比提示的还长）。 */
       var careAt = 0;
-      /**
-       * 这一段不间断的活儿是从什么时候开始的；0 表示还没起算。
-       * 中间睡过一觉（超过 sleepAfterMs 没动静）就重新起算 —— 「你坐了两小时」
-       * 说的是真的连着坐了两小时，不是「两小时前来过一次」。
-       */
       var activeSince = 0;
-      /** 「久坐」这一段劝过了没有（同一段只劝一次）。 */
       var marathonSaid = false;
-      /** 启动时算出来的离开时长；念过那句「好久不见」就清零。 */
       var comebackMs = 0;
-      /**
-       * callId → 工具名。tool/result 里没有工具名，只能靠这张小表回查。
-       * 上限 CALL_NAME_CAP 条，满了就丢最早的——过期的调用不会再有结果回来。
-       */
+
+      // ─── 工具观察 ───
       var callNames = new Map();
-      /** 最近一次 tool/call 的工具名（动态台词引用）。 */
       var lastToolName = null;
-      /** 最近一次技能升级的 key（动态台词引用；说过就清）。 */
       var lastSkillUp = null;
-      /** 一次拖拽是否真的挪动过：挪过就把随后那次 click（摸头）吞掉。 */
-      var dragMoved = false;
-      /** 这一次拖拽的基准：按下时的指针坐标与当时的偏移；null 表示没在拖。 */
-      var dragFrom = null;
-      /** 上一次玩微游戏的时刻（冷却用）。 */
+
+      // ─── 拖拽（独立子系统） ───
+      var drag = createDragManager();
+
+      // ─── 微游戏 ───
       var miniGameAt = 0;
 
       // ─── 多宠物集合 ───
@@ -224,8 +235,7 @@
         comebackMs = 0;
         lastToolName = null;
         lastSkillUp = null;
-        dragMoved = false;
-        dragFrom = null;
+        drag = createDragManager();
         miniGameAt = 0;
       }
 
@@ -1646,10 +1656,7 @@
         pat: function () {
           if (!config.patEnabled) return false;
           // 拖完 pointerup 之后浏览器还会补一次 click，吞掉它。
-          if (dragMoved) {
-            dragMoved = false;
-            return false;
-          }
+          if (drag.consumeDrag()) return false;
           var now = Date.now();
           if (now - patAt < config.patCooldownMs) return false;
           // 上一下摸完还没凉透就算「连着摸」；凉了就重新从第一下数。
@@ -1687,45 +1694,18 @@
          */
         beginDrag: function (x, y) {
           if (!config.dragEnabled) return;
-          dragFrom = { x: x, y: y, dx: state.pos.dx, dy: state.pos.dy };
-          dragMoved = false;
+          drag.begin(x, y, state.pos);
           commit({ dragging: true }, true);
         },
-        /**
-         * 拖动中：把偏移改到指针处。拖动期间不落盘（一次拖动几十个事件），
-         * 松手时才存一次。
-         * @param x - 指针的视口横坐标。
-         * @param y - 指针的视口纵坐标。
-         */
         moveDrag: function (x, y) {
-          if (dragFrom === null) return;
-          var next = clampPos({
-            dx: dragFrom.dx + (x - dragFrom.x),
-            dy: dragFrom.dy + (y - dragFrom.y)
-          });
-          if (next.dx === state.pos.dx && next.dy === state.pos.dy) return;
-          // 挪出几像素才算「拖过」：手抖不该把摸头吞掉。
-          if (Math.abs(x - dragFrom.x) + Math.abs(y - dragFrom.y) > 4) dragMoved = true;
-          commit({ pos: next, dragging: true }, true);
+          var next = drag.move(x, y, state.pos);
+          if (next !== null) commit({ pos: next, dragging: true }, true);
         },
-        /**
-         * 「刚刚那一下是拖动吗」：是就返回 true 并清掉标记。
-         *
-         * 浏览器在 pointerup 之后还会补发一次 click，视图拿这个把它吞掉，
-         * 免得「把卡片拖到别处」顺手变成「折叠卡片」/「摸头」。
-         * @returns 刚结束的那次拖动真的挪动过就是 true。
-         */
         dragged: function () {
-          var moved = dragMoved;
-          dragMoved = false;
-          return moved;
+          return drag.consumeDrag();
         },
-        /** 松手：结束拖动并把位置落盘。 */
         endDrag: function () {
-          if (dragFrom === null) return;
-          dragFrom = null;
-          // 这一次 commit 不跳过落盘，位置就此记住。
-          commit({ dragging: false });
+          if (drag.end()) commit({ dragging: false });
         },
 
         // ─── 微游戏 ───
@@ -2059,7 +2039,8 @@
      * @returns 闸门句柄。
      */
     function createFeedGate(config) {
-      var seen = new Map();
+      var current = new Map();
+      var old = new Map();
       return {
         /**
          * 这条事件是否应当触发喂食。
@@ -2070,12 +2051,11 @@
           var now = Date.now();
           if (typeof event.time !== "number" || now - event.time > config.freshnessMs) return false;
           var key = String(event.seq) + ":" + String(event.time) + ":" + event.type;
-          if (seen.has(key)) return false;
-          seen.set(key, now);
-          if (seen.size > 256) {
-            seen.forEach(function (stamp, old) {
-              if (now - stamp > config.freshnessMs) seen.delete(old);
-            });
+          if (current.has(key) || old.has(key)) return false;
+          current.set(key, now);
+          if (current.size > 128) {
+            old = current;
+            current = new Map();
           }
           return true;
         }

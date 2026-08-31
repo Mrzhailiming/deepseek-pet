@@ -5,7 +5,7 @@
 
     var CSS = [
       /* 整层挂在 ui-layout 的 shell.overlay 里：默认穿透，只有宠物卡片吃指针事件。 */
-      ".dshpet-root{position:absolute;right:20px;bottom:96px;z-index:40;pointer-events:none;",
+      ".dshpet-root{position:absolute;right:20px;bottom:96px;z-index:40;pointer-events:none;contain:layout style;",
       "display:flex;flex-direction:column;align-items:flex-end;gap:6px;",
       "font-family:inherit;-webkit-font-smoothing:antialiased}",
 
@@ -27,7 +27,7 @@
 
       ".dshpet-stage{position:relative}",
 
-      ".dshpet-card{pointer-events:auto;position:relative;display:flex;align-items:center;gap:10px;",
+      ".dshpet-card{pointer-events:auto;position:relative;display:flex;align-items:center;gap:10px;contain:layout style;",
       "padding:8px 12px;border-radius:14px;cursor:pointer;user-select:none;",
       "color:var(--dsw-alias-label-primary,#eaeaea);",
       "background:var(--dsw-alias-bg-layer-2,rgba(22,22,26,.82));",
@@ -259,7 +259,7 @@
 
       /* 成就 / 任务面板：从卡片上方展开。它自己吃指针事件（里面有可滚动的
          徽章格），但点它不该冒泡到卡片上去把卡片折叠了（见 onClick 的守卫）。 */
-      ".dshpet-panel{pointer-events:auto;position:absolute;bottom:100%;right:0;",
+      ".dshpet-panel{pointer-events:auto;position:absolute;bottom:100%;right:0;contain:layout style paint;",
       "margin-bottom:8px;width:236px;display:flex;flex-direction:column;gap:6px;",
       "padding:10px;border-radius:14px;cursor:default;",
       "color:var(--dsw-alias-label-primary,#eaeaea);",
