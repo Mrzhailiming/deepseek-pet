@@ -743,7 +743,7 @@ assert.equal(restored.pet.energy, 82, `离线 10 分钟应当回 12 点精力，
 assert.equal(restored.totalFeeds, 7)
 assert.equal(restored.totalTokens, 1234)
 assert.deepEqual(restored.tokensBySource, { user_input: 4, generation: 1200, tool_result: 30 })
-assert.equal(restored.pet.hunger, 30, `离线 10 分钟应当回升 20 点饥饿，实际 ${restored.pet.hunger}`)
+assert.equal(restored.pet.hunger, 28, `离线 10 分钟鲸鱼天赋(×0.9)应当回升 18 点饥饿，实际 ${restored.pet.hunger}`)
 assert.equal(restored.pet.name, '大肥鱼', 'v1 存档没有名字，回落到配置默认名')
 // 离线期间零食照攒：10 分钟够回 13 格，上限就是格数上限。
 assert.equal(restored.snacks, SNACK_MAX, `离线 10 分钟应当攒满零食，实际 ${restored.snacks}`)
@@ -1039,7 +1039,7 @@ try {
   const idle = vit.readState()
   assert.equal(idle.pet.mood, 46, `空闲 10 分钟应当掉 4 点心情，实际 ${idle.pet.mood}`)
   assert.equal(idle.pet.energy, 62, `空闲 10 分钟应当回 12 点精力，实际 ${idle.pet.energy}`)
-  assert.equal(idle.pet.hunger, 20, `空闲 10 分钟应当饿 20 点，实际 ${idle.pet.hunger}`)
+  assert.equal(idle.pet.hunger, 18, `空闲 10 分钟鲸鱼天赋(×0.9)应当饿 18 点，实际 ${idle.pet.hunger}`)
   assert.equal(idle.asleep, true, '5 分钟没有事件就该睡了')
   assert.equal(idle.bubble.kind, 'sleep', '刚睡着应当说一句')
 
@@ -1068,7 +1068,7 @@ try {
   tick()
   const slept = vit.readState()
   assert.equal(slept.pet.energy, 98, `睡着精力应当回 36 点，实际 ${slept.pet.energy}`)
-  assert.equal(slept.pet.hunger, 30, `睡着只该饿 10 点，实际 ${slept.pet.hunger}`)
+  assert.equal(slept.pet.hunger, 27, `睡着鲸鱼天赋(×0.9×0.5)只该饿 9 点，实际 ${slept.pet.hunger}`)
 
   // 喂一口就叫醒（摸头同理），醒来还打个哈欠。
   clickSnack(vit.component)
@@ -1112,7 +1112,7 @@ try {
   const flatState = flat.readState()
   assert.equal(flatState.pet.mood, 50, 'vitalsEnabled:false 时心情应当纹丝不动')
   assert.equal(flatState.pet.energy, 50, '精力同理')
-  assert.equal(flatState.pet.hunger, 60, '关了心情精力，饥饿照旧回升')
+  assert.equal(flatState.pet.hunger, 54, '关了心情精力，饥饿照旧回升（鲸鱼×0.9: 30min×1.8=54）')
   assert.equal(
     findNode(flat.component({}), n => n.props?.className === 'dshpet-sub dshpet-vitals'), null,
     '关了就不该渲染心情 / 精力那一行',
@@ -1163,7 +1163,7 @@ try {
     totalFeeds: 9, totalTokens: 500, snacks: 2,
     tokensBySource: { user_input: 500, generation: 0, tool_result: 0 },
     achievements: ['first_feed'],
-    daily: { day: today, feeds: 9, tools: 0, bestCombo: 0, done: [] },
+    daily: { day: today, feeds: 9, tools: 0, bestCombo: 0, pats: 0, tokens: 0, snacks: 0, done: [] },
     streakDay: today - 1, streakCount: 2,
     lastFeedAt: T1,
   })
@@ -1292,6 +1292,7 @@ try {
 
 // ---- 互动：摸头 / 拖动 / 台词气泡 ----------------------------------------
 
+storage.set(CONFIG_KEY, JSON.stringify({ dailyEnabled: false }))
 const playClock = Date.now
 try {
   const T2 = T + 10 * 86400000
@@ -1411,6 +1412,7 @@ try {
   assert.ok(CSS_TEXT.includes('.dshpet-bubble'), '.dshpet-bubble 没有对应样式')
 } finally {
   Date.now = playClock
+  storage.delete(CONFIG_KEY)
 }
 
 // ---- 挑食与暴食 BUFF -----------------------------------------------------
@@ -1418,8 +1420,8 @@ try {
 const eatClock = Date.now
 try {
   const T3 = T + 20 * 86400000
-  /** 三条任务全标成已完成：任务奖励也给经验，会把下面的经验断言带偏。 */
-  const ALL_QUESTS = { day: dayIndexOf(T3), feeds: 0, tools: 0, bestCombo: 0, done: ['feeds', 'tools', 'combo'] }
+  /** 当天的任务全标成已完成：任务奖励也给经验，会把下面的经验断言带偏。 */
+  const ALL_QUESTS = { day: dayIndexOf(T3), feeds: 0, tools: 0, bestCombo: 0, pats: 0, tokens: 0, snacks: 0, done: ['feeds', 'tools', 'combo', 'feeds20', 'feeds5', 'pats5', 'pats15', 'tok10k', 'tok50k', 'tools15', 'snacks3', 'combo10'] }
   const EATEN_SAVE = {
     pet: { hunger: 60, exp: 0, level: 3, mood: 80, energy: 90 },
     totalFeeds: 20, totalTokens: 5000, snacks: 0,
@@ -1608,7 +1610,7 @@ try {
     totalFeeds: 4, totalTokens: 4000, snacks: SNACK_MAX,
     tokensBySource: { user_input: 1000, generation: 2000, tool_result: 1000 },
     achievements: ['first_feed', 'gourmet'],
-    daily: { day: workDay, feeds: 0, tools: 0, bestCombo: 0, done: ['feeds', 'tools', 'combo'] },
+    daily: { day: workDay, feeds: 0, tools: 0, bestCombo: 0, done: ['feeds', 'tools', 'combo', 'feeds20', 'feeds5', 'pats5', 'pats15', 'tok10k', 'tok50k', 'tools15', 'snacks3', 'combo10'] },
     streakDay: workDay, streakCount: 1,
     lastFeedAt: T4,
   }
@@ -1774,7 +1776,7 @@ try {
   )
   assert.equal(clean.skills.coding.level, 10, '等级夹到上限')
   assert.equal(clean.skills.coding.xp, 0, '负经验归零')
-  assert.deepEqual(clean.skills.debug, { xp: 0, level: 1 }, '不成形的那条退回空技能')
+  assert.deepEqual(clean.skills.debug, { xp: 0, level: 1, mastery: 0 }, '不成形的那条退回空技能')
   assert.equal(clean.memory.files.length, 2, '不成形的行应当丢掉')
   assert.deepEqual(clean.memory.files[0], { name: 'a.js', count: 4 }, '按次数降序')
   assert.equal(clean.memory.files[1].name.length, 40, '超长文件名截到 40 字')
@@ -1817,7 +1819,7 @@ try {
     off.feed(callEvent('edit', { file_path: 'client.js' }, id))
   }
   const offState = off.readState()
-  assert.deepEqual(offState.skills.coding, { xp: 0, level: 1 }, '关了技能就不该记账')
+  assert.deepEqual(offState.skills.coding, { xp: 0, level: 1, mastery: 0 }, '关了技能就不该记账')
   assert.deepEqual(offState.memory.files, [], '关了记忆就不该记文件')
   assert.deepEqual(offState.memory.tools, [], '关了记忆就不该记工具')
   assert.equal(offState.bubble, null, '关了提示就一句都不说')
@@ -1865,7 +1867,7 @@ try {
     totalFeeds: 30, totalTokens: 40000, snacks: SNACK_MAX,
     tokensBySource: { user_input: 10000, generation: 20000, tool_result: 10000 },
     achievements: ['first_feed', 'gourmet', 'combo_full', 'feast'],
-    daily: { day: day5, feeds: 0, tools: 0, bestCombo: 0, done: ['feeds', 'tools', 'combo'] },
+    daily: { day: day5, feeds: 0, tools: 0, bestCombo: 0, done: ['feeds', 'tools', 'combo', 'feeds20', 'feeds5', 'pats5', 'pats15', 'tok10k', 'tok50k', 'tools15', 'snacks3', 'combo10'] },
     streakDay: day5, streakCount: 1,
     lastFeedAt: T5,
   }, extra)
@@ -2098,12 +2100,13 @@ try {
   // 没有哪一句被偏爱到两倍、任意相邻两次不重复。
   storage.set(CONFIG_KEY, JSON.stringify({
     careEnabled: false, bubbleMinGapMs: 0, pickyEnabled: false, hungerRegenPerMin: 0,
+    dynamicLinesEvery: 0,
   }))
   const spread = bootAt(T5, lineSave())
   const pool = linesOf('user_input')
   const tally = new Map()
   let prev = null
-  for (let i = 0; i < 240; i += 1) {
+  for (let i = 0; i < 420; i += 1) {
     Date.now = () => T5 + i * 1000
     spread.feed(userEvent('字'.repeat(400)))
     const shown = spread.readState().bubble
@@ -2155,7 +2158,7 @@ try {
     totalFeeds: 30, totalTokens: 40000, snacks: SNACK_MAX,
     tokensBySource: { user_input: 10000, generation: 20000, tool_result: 10000 },
     achievements: ['first_feed', 'gourmet', 'combo_full', 'feast', 'streak_3', 'tokens_100k'],
-    daily: { day: day6, feeds: 0, tools: 0, bestCombo: 0, done: ['feeds', 'tools', 'combo'] },
+    daily: { day: day6, feeds: 0, tools: 0, bestCombo: 0, done: ['feeds', 'tools', 'combo', 'feeds20', 'feeds5', 'pats5', 'pats15', 'tok10k', 'tok50k', 'tools15', 'snacks3', 'combo10'] },
     streakDay: day6, streakCount: 1,
     lastFeedAt: T6,
   }, extra)
@@ -2530,7 +2533,7 @@ try {
       tokensBySource: { user_input: 10000, generation: 20000, tool_result: 10000 },
       achievements: ['first_feed', 'gourmet'],
       daily: {
-        day: MORPH_DAY, feeds: 0, tools: 0, bestCombo: 0, done: ['feeds', 'tools', 'combo'],
+        day: MORPH_DAY, feeds: 0, tools: 0, bestCombo: 0, pats: 0, tokens: 0, snacks: 0, done: ['feeds', 'tools', 'combo', 'feeds20', 'feeds5', 'pats5', 'pats15', 'tok10k', 'tok50k', 'tools15', 'snacks3', 'combo10'],
       },
       streakDay: MORPH_DAY, streakCount: 1, lastFeedAt: T6,
       skills,

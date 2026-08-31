@@ -165,23 +165,36 @@ if (typeof patch === 'string' && existsSync(resolve(root, patch))) {
   expect(named.test(patchText), `${patch}: 没有一行的 name 等于包名 ${pkg.name} —— dsh.client 扫描会跳过这个包`)
 }
 
-// ------------------------------------------------- 2.5 素材管线
-// 资源是打包的原料：素材 PNG -> APNG 合成 -> base64 内联进 client.js。
+// ------------------------------------------------- 2.5 素材管线 + 拼接
+// 管线：素材 PNG → APNG 合成 → base64 写入 lib/src/sprites.js → 拼接 lib/client.js。
 // 必须赶在第 3 步（client 产物校验）之前跑，否则校验/冒烟/复核的都是旧素材。
-// 包内没有 build-apng.cjs 就跳过（本步骤是 dsh-pet-plugin 专属，别的包不受影响）。
+// 包内没有 build-apng.cjs 就跳过素材重建（本步骤是 dsh-pet-plugin 专属）；
+// 但只要有 lib/build.mjs，拼接那一步总会跑（源文件 → 产物）。
 const assetBuilder = join(root, 'assets', 'deepseek', 'build-apng.cjs')
 const assetIntegrator = join(root, 'scripts', 'integrate-apng.mjs')
+const clientBuilder = join(root, 'lib', 'build.mjs')
 const hasAssetPipeline = existsSync(assetBuilder) && existsSync(assetIntegrator)
+const hasClientBuilder = existsSync(clientBuilder)
 const skipAssets = args.includes('--no-assets')
 if (hasAssetPipeline && !checkOnly && !skipAssets) {
-  console.log('\n[assets] 素材管线：合成 APNG → 内联 client.js')
-  const steps = [['合成 APNG', assetBuilder], ['内联 client.js', assetIntegrator]]
+  console.log('\n[assets] 素材管线：合成 APNG → 内联 sprites.js → 拼接 client.js')
+  const steps = [['合成 APNG', assetBuilder], ['内联 sprites.js', assetIntegrator]]
+  if (hasClientBuilder) steps.push(['拼接 client.js', clientBuilder])
   for (const [label, script] of steps) {
     const run = spawnSync(process.execPath, [script], { cwd: root, encoding: 'utf8' })
     if (run.status !== 0) {
       fail(`素材管线[${label}]失败:\n${run.stdout}${run.stderr}`)
       break
     }
+    const tail = run.stdout.trim().split('\n').slice(-2)
+    for (const line of tail) if (line.trim()) console.log(`  · ${line.trim()}`)
+  }
+} else if (!checkOnly && hasClientBuilder && !skipAssets) {
+  console.log('\n[build] 拼接 lib/src/ → lib/client.js')
+  const run = spawnSync(process.execPath, [clientBuilder], { cwd: root, encoding: 'utf8' })
+  if (run.status !== 0) {
+    fail(`拼接失败:\n${run.stdout}${run.stderr}`)
+  } else {
     const tail = run.stdout.trim().split('\n').slice(-2)
     for (const line of tail) if (line.trim()) console.log(`  · ${line.trim()}`)
   }

@@ -13,6 +13,7 @@
     "./package.json": "./package.json"
   },
   "scripts": {
+    "build": "node lib/build.mjs",
     "test": "node test/smoke.mjs",
     "check": "node scripts/pack.mjs --check",
     "pack": "node scripts/pack.mjs"
