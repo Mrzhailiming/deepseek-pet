@@ -5910,7 +5910,7 @@ window.__ModuleLoader__.load({
         className: "dshpet-whale dshpet-whale-sprite",
         width: size,
         height: size,
-        style: { width: String(size) + "px", height: String(size) + "px", display: "block" },
+        style: { width: String(size) + "px", height: String(size) + "px" },
         alt: "",
         role: "img",
         "aria-label": label
