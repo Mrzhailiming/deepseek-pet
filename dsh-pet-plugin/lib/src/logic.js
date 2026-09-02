@@ -853,7 +853,8 @@
         lastFeedAt: 0,
         skills: { coding: { xp: 0, level: 0, mastery: 0 }, research: { xp: 0, level: 0, mastery: 0 }, debug: { xp: 0, level: 0, mastery: 0 }, writing: { xp: 0, level: 0, mastery: 0 } },
         memory: { files: [], tools: [], hours: new Array(24).fill(0), bornDay: dayIndexOf(Date.now()), errors: 0, recoveries: 0 },
-        prestige: 0
+        prestige: 0,
+        formsOwned: []
       };
     }
 
@@ -925,7 +926,8 @@
         lastFeedAt: numberIn(raw.lastFeedAt, 0, Number.MAX_SAFE_INTEGER, 0),
         skills: sanitizeSkills(raw.skills, config),
         memory: sanitizeMemory(raw.memory, config, today),
-        prestige: numberIn(raw.prestige, 0, 1000, 0)
+        prestige: numberIn(raw.prestige, 0, 1000, 0),
+        formsOwned: sanitizeIds(raw.formsOwned, FORM_BY_KEY)
       };
     }
 
@@ -1040,7 +1042,9 @@
         pos: v1.pos,
         lastFeedAt: v1.lastFeedAt,
         skills: v1.skills,
-        memory: v1.memory
+        memory: v1.memory,
+        prestige: 0,
+        formsOwned: []
       };
       return {
         savedAt: v1.savedAt,

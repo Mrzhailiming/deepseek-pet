@@ -682,6 +682,26 @@ window.__ModuleLoader__.load({
       {
         id: "curious", icon: "🔭", label: "十万个为什么", hint: "把好奇心顶到满格",
         test: function (s) { return s.pet.curiosity >= 100; }
+      },
+      {
+        id: "level_15", icon: "⭐", label: "精英之路", hint: "养到 Lv.15",
+        test: function (s) { return s.pet.level >= 15; }
+      },
+      {
+        id: "level_20", icon: "🌟", label: "老练之证", hint: "养到 Lv.20",
+        test: function (s) { return s.pet.level >= 20; }
+      },
+      {
+        id: "level_25", icon: "💫", label: "大师之印", hint: "养到 Lv.25",
+        test: function (s) { return s.pet.level >= 25; }
+      },
+      {
+        id: "form_collector", icon: "🎭", label: "变形记", hint: "收集 2 种进化形态",
+        test: function (s) { return s.formsOwnedCount >= 2; }
+      },
+      {
+        id: "form_all", icon: "🏆", label: "全图鉴", hint: "收集全部 4 种进化形态",
+        test: function (s) { return s.formsOwnedCount >= 4; }
       }
     ];
 
@@ -772,7 +792,9 @@ window.__ModuleLoader__.load({
       proud: ["嘿嘿，我厉害吧", "看到了吗看到了吗", "这个我在行", "哼哼～", "夸我一下嘛", "这波操作可以吧", "我超棒的！"],
       worried: ["唔…没事吧？", "有点不安…", "我们会好的吧", "要不要停一下…", "我有点担心你", "深呼吸深呼吸", "先别急…"],
       night: ["这么晚还在写代码？", "夜深了…要不歇了吧", "我陪着你，但你也别熬太久", "这个点了，眼睛还好吗", "星星都出来了，你还不睡？", "再写一会儿就睡吧"],
-      marathon: ["歇会儿吧，你坐了好久了", "起来走两步？", "干了这么久了，喝口水", "我陪你到现在，你也该累了", "站起来动一动吧", "你的肩膀还好吗"]
+      marathon: ["歇会儿吧，你坐了好久了", "起来走两步？", "干了这么久了，喝口水", "我陪你到现在，你也该累了", "站起来动一动吧", "你的肩膀还好吗"],
+      milestone: ["又一个里程碑！", "能走到这里不容易", "我们越来越强了", "看看我们走了多远", "这个等级…值得纪念", "里程碑！记一笔"],
+      prestige_chat: ["轮回过的记忆…有些模糊", "上辈子的事还记得一点", "经历越多每一口越有味道", "转世的我变强了一点", "又是新的开始…但这次不一样", "重来一遍也不坏嘛"]
     };
 
     /**
@@ -1686,6 +1708,36 @@ window.__ModuleLoader__.load({
      */
     var IDLE_ACTS = ["yawn", "wag", "roll", "peek"];
 
+    var MILESTONE_LEVELS = [
+      { level: 15, label: "精英", icon: "⭐" },
+      { level: 20, label: "老练", icon: "🌟" },
+      { level: 25, label: "大师", icon: "💫" }
+    ];
+
+    var TITLES = [
+      { label: "新手",   test: function (c) { return true; } },
+      { label: "熟练",   test: function (c) { return c.level >= 5; } },
+      { label: "老手",   test: function (c) { return c.level >= 10; } },
+      { label: "精英",   test: function (c) { return c.level >= 15; } },
+      { label: "老练",   test: function (c) { return c.level >= 20; } },
+      { label: "大师",   test: function (c) { return c.level >= 25; } },
+      { label: "宗师",   test: function (c) { return c.level >= 30; } },
+      { label: "转世",   test: function (c) { return c.prestige >= 1; } },
+      { label: "飞升",   test: function (c) { return c.prestige >= 2; } },
+      { label: "不朽",   test: function (c) { return c.prestige >= 3; } },
+      { label: "收藏家", test: function (c) { return c.formsCount >= 2; } },
+      { label: "全图鉴", test: function (c) { return c.formsCount >= 4; } }
+    ];
+
+    function titleOf(level, prestige, formsCount) {
+      var ctx = { level: level, prestige: prestige, formsCount: formsCount };
+      var best = TITLES[0];
+      for (var i = 1; i < TITLES.length; i += 1) {
+        if (TITLES[i].test(ctx)) best = TITLES[i];
+      }
+      return best;
+    }
+
     //#endregion
 
     //#region 样式
@@ -1726,6 +1778,9 @@ window.__ModuleLoader__.load({
       ".dshpet-card[data-tier=epic]{animation:dshpet-shake-strong 320ms ease-in-out}",
       /* 睡着了：整张卡片压暗一档，别在夜里发亮。 */
       ".dshpet-card[data-asleep=true]{opacity:.72}",
+      /* 睡着时隐藏 eat/pat 叠加层：lastAct 不会自动清零，
+         睡着后底图已换成 sleep 帧，eat/pat 帧若还显示就会叠出两张立绘。 */
+      ".dshpet-card[data-asleep=true] .dshpet-sprite-eat,.dshpet-card[data-asleep=true] .dshpet-sprite-pat{display:none!important}",
       /* 暴食 BUFF：强烈的火焰感——呼吸光晕 + 宠物放大 + 火焰粒子 + 底部暖光。 */
       ".dshpet-card[data-buff=frenzy]{border-color:rgba(255,140,40,.85);",
       "box-shadow:var(--dsw-shadow-lv3,0 6px 24px rgba(0,0,0,.35)),0 0 20px rgba(255,140,40,.5),0 0 40px rgba(255,80,20,.25);",
@@ -1929,6 +1984,22 @@ window.__ModuleLoader__.load({
       "padding:2px 8px;margin-top:4px;pointer-events:auto;color:inherit;transition:border-color .2s}",
       ".dshpet-prestige-btn:hover{border-color:rgba(255,215,0,.7);",
       "background:linear-gradient(135deg,rgba(255,215,0,.3),rgba(255,140,0,.3))}",
+
+      ".dshpet-prestige-badge{position:absolute;top:-4px;right:-4px;font-size:10px;",
+      "background:linear-gradient(135deg,rgba(255,215,0,.3),rgba(255,140,0,.3));",
+      "border:1px solid rgba(255,215,0,.5);border-radius:8px;padding:1px 4px;pointer-events:none;z-index:3}",
+      ".dshpet-card[data-prestige-tier=gold] .dshpet-name,",
+      ".dshpet-card[data-prestige-tier=glow] .dshpet-name{color:#f2c744;text-shadow:0 0 6px rgba(255,215,0,.3)}",
+      "@keyframes dshpet-prestige-glow{",
+      "0%,100%{box-shadow:0 6px 24px rgba(0,0,0,.35),0 0 12px rgba(255,215,0,.12)}",
+      "50%{box-shadow:0 6px 24px rgba(0,0,0,.35),0 0 16px rgba(255,215,0,.2),0 0 32px rgba(255,215,0,.1)}}",
+      ".dshpet-card[data-prestige-tier=glow]{animation:dshpet-prestige-glow 4s ease-in-out infinite}",
+      ".dshpet-form-grid{gap:8px}",
+      ".dshpet-form-badge{font-size:22px;transition:transform .15s}",
+      ".dshpet-form-badge[data-owned=true]{opacity:1}",
+      ".dshpet-form-badge[data-active=true]{outline:2px solid rgba(77,107,254,.7);border-radius:6px;background:rgba(77,107,254,.15)}",
+      ".dshpet-form-badge[data-owned=true]:hover{transform:scale(1.2)}",
+
       ".dshpet-minigame{position:absolute;left:-20px;top:-20px;right:-20px;bottom:-20px;pointer-events:auto;z-index:10}",
       ".dshpet-mg-target{position:absolute;cursor:pointer;font-size:22px;transition:transform .15s;",
       "user-select:none;animation:dshpet-mg-pop .3s ease-out}",
@@ -2161,7 +2232,8 @@ window.__ModuleLoader__.load({
       ".dshpet-card[data-idle=wag] .dshpet-whale-tail,",
       ".dshpet-card[data-idle=peek] .dshpet-whale-eyes,",
       ".dshpet-card[data-idle=yawn] .dshpet-whale-mouth,",
-      ".dshpet-card[data-idle=roll] .dshpet-whale-body",
+      ".dshpet-card[data-idle=roll] .dshpet-whale-body,",
+      ".dshpet-card[data-prestige-tier=glow]",
       "{animation:none}",
       /* 喷水柱与 Zzz 都是靠动画才可见的，关动画后给它们一个静态可见态。 */
       ".dshpet-whale-spout{opacity:1}",
@@ -3136,7 +3208,8 @@ window.__ModuleLoader__.load({
         lastFeedAt: 0,
         skills: { coding: { xp: 0, level: 0, mastery: 0 }, research: { xp: 0, level: 0, mastery: 0 }, debug: { xp: 0, level: 0, mastery: 0 }, writing: { xp: 0, level: 0, mastery: 0 } },
         memory: { files: [], tools: [], hours: new Array(24).fill(0), bornDay: dayIndexOf(Date.now()), errors: 0, recoveries: 0 },
-        prestige: 0
+        prestige: 0,
+        formsOwned: []
       };
     }
 
@@ -3208,7 +3281,8 @@ window.__ModuleLoader__.load({
         lastFeedAt: numberIn(raw.lastFeedAt, 0, Number.MAX_SAFE_INTEGER, 0),
         skills: sanitizeSkills(raw.skills, config),
         memory: sanitizeMemory(raw.memory, config, today),
-        prestige: numberIn(raw.prestige, 0, 1000, 0)
+        prestige: numberIn(raw.prestige, 0, 1000, 0),
+        formsOwned: sanitizeIds(raw.formsOwned, FORM_BY_KEY)
       };
     }
 
@@ -3323,7 +3397,9 @@ window.__ModuleLoader__.load({
         pos: v1.pos,
         lastFeedAt: v1.lastFeedAt,
         skills: v1.skills,
-        memory: v1.memory
+        memory: v1.memory,
+        prestige: 0,
+        formsOwned: []
       };
       return {
         savedAt: v1.savedAt,
@@ -3768,7 +3844,8 @@ window.__ModuleLoader__.load({
           miniGame: null,
           cardDataUrl: null,
           talent: (PET_SPECIES[rec.species] && PET_SPECIES[rec.species].talent) || "",
-          prestige: rec.prestige || 0
+          prestige: rec.prestige || 0,
+          formsOwned: Array.isArray(rec.formsOwned) ? rec.formsOwned.slice() : []
         };
       }
 
@@ -3802,7 +3879,8 @@ window.__ModuleLoader__.load({
           lastFeedAt: state.lastFeedAt,
           skills: state.skills,
           memory: state.memory,
-          prestige: state.prestige
+          prestige: state.prestige,
+          formsOwned: state.formsOwned
         };
       }
 
@@ -4032,7 +4110,8 @@ window.__ModuleLoader__.load({
           sessionEdits: sessionEdits,
           lastToolName: lastToolName,
           lastSkillUp: lastSkillUp,
-          skills: state.skills
+          skills: state.skills,
+          prestige: state.prestige || 0
         };
       }
 
@@ -4243,7 +4322,8 @@ window.__ModuleLoader__.load({
           petCount: Object.keys(collection).length,
           favorites: favorites.slice(),
           eggs: eggs.slice(),
-          petOrder: computePetOrder(collection, favorites)
+          petOrder: computePetOrder(collection, favorites),
+          formsOwned: Array.isArray(rec.formsOwned) ? rec.formsOwned.slice() : []
         }, true);
       }
 
@@ -4352,6 +4432,15 @@ window.__ModuleLoader__.load({
           // 没跨档也要查一次分化：`evolveMinLevel` 是配置项，被改到档位之间
           // （比如 8）的话，这一支就是唯一能接住那一级的地方。
           if (after.level > before.level) appendMorph(patch);
+          if (after.level > before.level) {
+            for (var mi = 0; mi < MILESTONE_LEVELS.length; mi += 1) {
+              var ml = MILESTONE_LEVELS[mi];
+              if (before.level < ml.level && after.level >= ml.level) {
+                appendNotice(patch, ml.icon, "里程碑 · Lv." + String(ml.level) + " " + ml.label, "milestone", "epic");
+                say(patch, "milestone", true);
+              }
+            }
+          }
           return;
         }
         // 蹭 epic 那套彩虹大字，进阶总得比一口饭显眼。
@@ -4361,6 +4450,13 @@ window.__ModuleLoader__.load({
         // 顶到传说那一档的同一口饭里可能就够分化了：先「进阶 · 传说金鲸」，
         // 再「进化 · 代码猫」，两条特效连着放，顺序正好是这只宠物的经历。
         appendMorph(patch);
+        for (var mi2 = 0; mi2 < MILESTONE_LEVELS.length; mi2 += 1) {
+          var ml2 = MILESTONE_LEVELS[mi2];
+          if (before.level < ml2.level && after.level >= ml2.level) {
+            appendNotice(patch, ml2.icon, "里程碑 · Lv." + String(ml2.level) + " " + ml2.label, "milestone", "epic");
+            say(patch, "milestone", true);
+          }
+        }
       }
 
       /**
@@ -4377,8 +4473,12 @@ window.__ModuleLoader__.load({
         var skills = patch.skills === undefined ? state.skills : patch.skills;
         var form = evolveTargetOf(pet, skills, config);
         if (form === null) return null;
-        // 一次定终身，所以这一行是**唯一**写 form 的地方。
         patch.pet = Object.assign({}, pet, { form: form.key });
+        var owned = patch.formsOwned === undefined ? state.formsOwned : patch.formsOwned;
+        if (!Array.isArray(owned)) owned = [];
+        if (owned.indexOf(form.key) < 0) {
+          patch.formsOwned = owned.concat([form.key]);
+        }
         // 蹭进阶那套彩虹大字，外加卡片上那一段 1.6s 的变身动画（.dshpet-morph
         // 靠这条特效的 source 认出来）。
         appendNotice(patch, form.icon, "进化 · " + form.label, "morph", "epic");
@@ -4410,7 +4510,8 @@ window.__ModuleLoader__.load({
           skills: pick("skills"),
           memory: pick("memory"),
           comboCount: extra.comboCount === undefined ? 0 : extra.comboCount,
-          foodTier: extra.foodTier === undefined ? null : extra.foodTier
+          foodTier: extra.foodTier === undefined ? null : extra.foodTier,
+          formsOwnedCount: (function () { var f = pick("formsOwned"); return Array.isArray(f) ? f.length : 0; })()
         };
       }
 
@@ -4727,6 +4828,9 @@ window.__ModuleLoader__.load({
           if (isNightHour(hour, from, (from + 2) % 24)) {
             chat(patch, "chat", CHAT_LINES.busy_hour(range), now);
           }
+        }
+        if (state.prestige > 0) {
+          chat(patch, "prestige_chat", null, now);
         }
       }
 
@@ -5615,10 +5719,19 @@ window.__ModuleLoader__.load({
             snacks: config.manualSnackMax
           };
           collection[activePetId].prestige = newPrestige;
-          appendNotice(patch, "🔄", "轮回 · 第 " + String(newPrestige) + " 世 · 经验+" + String(newPrestige * 5) + "%", "prestige", "epic");
+          var tierText = newPrestige === 1 ? " · 解锁轮回徽章"
+            : newPrestige === 2 ? " · 解锁金名"
+            : newPrestige === 3 ? " · 解锁辉光" : "";
+          appendNotice(patch, "🔄", "轮回 · 第 " + String(newPrestige) + " 世 · 经验+" + String(Math.round(newPrestige * config.prestigeExpBonus * 100)) + "%" + tierText, "prestige", "epic");
           say(patch, "evolve", true);
           bumpDim(patch, "pride", config.pridePerWin * 2);
           commit(patch);
+          return true;
+        },
+        switchForm: function (formKey) {
+          if (!Array.isArray(state.formsOwned) || state.formsOwned.indexOf(formKey) < 0) return false;
+          if (formOf(formKey) === null) return false;
+          commit({ pet: Object.assign({}, state.pet, { form: formKey }) });
           return true;
         },
 
@@ -6132,9 +6245,27 @@ window.__ModuleLoader__.load({
               key: item.id,
               className: "dshpet-badge",
               "data-owned": has ? "true" : undefined,
-              // 没解锁的写着怎么解锁；解锁了的就只报名字。
               title: item.label + (has ? "" : " · " + item.hint)
             }, item.icon);
+          })));
+      }
+      if (config.evolveEnabled) {
+        var formsOwned = state.formsOwned || [];
+        rows.push(h("div", { key: "t-forms", className: "dshpet-panel-title" },
+          "形态图鉴 " + String(formsOwned.length) + "/" + String(FORMS.length)));
+        rows.push(h("div", { key: "form-grid", className: "dshpet-grid dshpet-form-grid" },
+          FORMS.map(function (form) {
+            var has = formsOwned.indexOf(form.key) >= 0;
+            var active = state.pet.form === form.key;
+            return h("span", {
+              key: form.key,
+              className: "dshpet-badge dshpet-form-badge",
+              "data-owned": has ? "true" : undefined,
+              "data-active": active ? "true" : undefined,
+              title: form.label + (has ? (active ? "（当前）" : "（点击切换）") : " · 未解锁"),
+              onClick: has && !active ? function (e) { stopBubbling(e); store.switchForm(form.key); } : undefined,
+              style: has && !active ? { cursor: "pointer" } : undefined
+            }, form.icon);
           })));
       }
       return h(
@@ -6602,6 +6733,8 @@ window.__ModuleLoader__.load({
         // 长相：没进化就按等级算（不存档、不占状态），进化过就按 pet.form 走。
         // 和头像里那次 lookOf 是同一个函数，所以卡片和头像不会各说一套。
         var look = lookOf(pet);
+        var prestigeTier = state.prestige >= 3 ? "glow" : state.prestige >= 2 ? "gold" : state.prestige >= 1 ? "badge" : undefined;
+        var petTitle = titleOf(pet.level, state.prestige, Array.isArray(state.formsOwned) ? state.formsOwned.length : 0);
         // 进阶金环 / 变身白光都直接挂在对应的那条特效上：特效被 dropEffect
         // 撤掉，光也跟着没，不会闪回。
         var evolving = null;
@@ -6658,6 +6791,7 @@ window.__ModuleLoader__.load({
                 // 小动作挂在卡片上（而不是头像上）：几条 idle 各动一个部件，
                 // 用一个 data-idle 派发比给每个部件加类干净。
                 "data-idle": state.idleAct === null ? undefined : state.idleAct,
+                "data-prestige-tier": prestigeTier,
                 // 收纳面板与成就/任务面板互斥：成就开着时 popover 不展开，避免两层浮层重叠。
                 "data-detail-open": detailOpen && !state.panelOpen ? "true" : undefined,
                 title: "心情 " + String(pet.mood) + " / 精力 " + String(pet.energy)
@@ -6741,7 +6875,13 @@ window.__ModuleLoader__.load({
                 // 变身：白光罩住 → 弹一下 → 新形态露出来，1.6s 一次性。
                 morphing === null
                   ? null
-                  : h("span", { key: "morph-" + morphing.key, className: "dshpet-morph" })
+                  : h("span", { key: "morph-" + morphing.key, className: "dshpet-morph" }),
+                state.prestige >= 1
+                  ? h("span", {
+                    className: "dshpet-prestige-badge",
+                    title: "第 " + String(state.prestige) + " 世"
+                  }, "🔄" + String(state.prestige))
+                  : null
               ),
               // 多宠物右箭头
               state.petCount > 1
@@ -6777,7 +6917,7 @@ window.__ModuleLoader__.load({
                     "div",
                     { className: "dshpet-meta" },
                   h("div", { className: "dshpet-name" },
-                    pet.name + " · Lv." + String(pet.level) + " " + look.label + (state.prestige > 0 ? " · 🔄" + String(state.prestige) : ""),
+                    pet.name + " · Lv." + String(pet.level) + " " + petTitle.label + (state.prestige > 0 ? " · 🔄" + String(state.prestige) : ""),
                     // 收藏星
                     state.petCount > 1
                       ? h("button", {

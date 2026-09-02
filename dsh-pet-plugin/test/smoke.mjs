@@ -874,11 +874,11 @@ function stageCase(level, exp = 0) {
 const stageImgOf = whale => srcOf(whale)
 
 const STAGES = [
-  { level: 1, key: 'baby', label: '幼崽', spout: false, dorsal: false, crown: false },
-  { level: 3, key: 'young', label: '少年', spout: true, dorsal: false, crown: false },
-  { level: 6, key: 'adult', label: '成年', spout: true, dorsal: true, crown: false },
+  { level: 1, key: 'baby', label: '幼崽', title: '新手', spout: false, dorsal: false, crown: false },
+  { level: 3, key: 'young', label: '少年', title: '新手', spout: true, dorsal: false, crown: false },
+  { level: 6, key: 'adult', label: '成年', title: '熟练', spout: true, dorsal: true, crown: false },
   // 传说档的喷水口被王冠占了，所以最高档反而不喷水。
-  { level: 10, key: 'legend', label: '传说', spout: false, dorsal: true, crown: true },
+  { level: 10, key: 'legend', label: '传说', title: '老手', spout: false, dorsal: true, crown: true },
 ]
 
 const sizes = []
@@ -887,7 +887,7 @@ for (const stage of STAGES) {
   const got = stageCase(stage.level)
   assert.equal(got.card.props['data-stage'], stage.key, `Lv.${stage.level} 的形态标记不对`)
   assert.equal(
-    got.name, `大肥鱼 · Lv.${stage.level} ${stage.label}`,
+    got.name, `大肥鱼 · Lv.${stage.level} ${stage.title}`,
     `Lv.${stage.level} 的名字行不对: ${got.name}`,
   )
   assert.match(
@@ -1219,8 +1219,8 @@ try {
   assert.ok(panelNode !== null, '开了就该渲染面板')
   assert.deepEqual(
     findAll(panelNode, n => n.props?.className === 'dshpet-panel-title').map(n => n.children.join('')),
-    ['状态', '今日任务 · 连续到访 3 天', '技能', '记忆 · 相处 1 天', '成就 2/14'],
-    '面板的五段标题不对',
+    ['状态', '今日任务 · 连续到访 3 天', '技能', '记忆 · 相处 1 天', '成就 2/19', '形态图鉴 0/4'],
+    '面板的段标题不对',
   )
   assert.equal(
     findNode(panelNode, n => n.props?.className === 'dshpet-bar dshpet-bar-mood')
@@ -1236,14 +1236,14 @@ try {
   )
   assert.equal(quests[1].props['data-done'], undefined, '没达成的那条不该划掉')
   assert.equal(
-    findAll(panelNode, n => n.props?.className === 'dshpet-badge').length, 14,
+    findAll(panelNode, n => n.props?.className === 'dshpet-badge').length, 19,
     '面板应当摆全部成就',
   )
   const lockedBadges = findAll(
     panelNode,
     n => n.props?.className === 'dshpet-badge' && n.props['data-owned'] === undefined,
   )
-  assert.equal(lockedBadges.length, 12, '此刻应当还有 12 个没解锁')
+  assert.equal(lockedBadges.length, 17, '此刻应当还有 17 个没解锁')
   assert.match(
     lockedBadges[0].props.title, / · /,
     '没解锁的徽章 tooltip 应当写着怎么解锁: ' + lockedBadges[0].props.title,
@@ -1831,7 +1831,7 @@ try {
       findNode(off.component({}), n => n.props?.className === 'dshpet-panel'),
       n => n.props?.className === 'dshpet-panel-title',
     ).map(n => n.children.join('')),
-    ['状态', '今日任务 · 连续到访 1 天', '成就 2/14'],
+    ['状态', '今日任务 · 连续到访 1 天', '成就 2/19', '形态图鉴 0/4'],
     '全关了面板应当退回原来的三段',
   )
 
@@ -2621,7 +2621,7 @@ try {
     assert.equal(got.stage, row.key, `${row.skill} 领先应当分化成 ${row.key}，实际 ${got.stage}`)
     assert.equal(boot.readState().pet.form, row.key, `${row.key}：pet.form 应当写上`)
     assert.equal(
-      got.name, `大肥鱼 · Lv.10 ${row.label}`, `${row.key} 的名字行不对: ${got.name}`,
+      got.name, `大肥鱼 · Lv.10 老手`, `${row.key} 的名字行不对: ${got.name}`,
     )
     assert.match(
       ariaOf(got.whale), new RegExp(row.label),

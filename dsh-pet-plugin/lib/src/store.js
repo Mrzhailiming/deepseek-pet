@@ -156,7 +156,8 @@
           miniGame: null,
           cardDataUrl: null,
           talent: (PET_SPECIES[rec.species] && PET_SPECIES[rec.species].talent) || "",
-          prestige: rec.prestige || 0
+          prestige: rec.prestige || 0,
+          formsOwned: Array.isArray(rec.formsOwned) ? rec.formsOwned.slice() : []
         };
       }
 
@@ -190,7 +191,8 @@
           lastFeedAt: state.lastFeedAt,
           skills: state.skills,
           memory: state.memory,
-          prestige: state.prestige
+          prestige: state.prestige,
+          formsOwned: state.formsOwned
         };
       }
 
@@ -420,7 +422,8 @@
           sessionEdits: sessionEdits,
           lastToolName: lastToolName,
           lastSkillUp: lastSkillUp,
-          skills: state.skills
+          skills: state.skills,
+          prestige: state.prestige || 0
         };
       }
 
@@ -631,7 +634,8 @@
           petCount: Object.keys(collection).length,
           favorites: favorites.slice(),
           eggs: eggs.slice(),
-          petOrder: computePetOrder(collection, favorites)
+          petOrder: computePetOrder(collection, favorites),
+          formsOwned: Array.isArray(rec.formsOwned) ? rec.formsOwned.slice() : []
         }, true);
       }
 
@@ -740,6 +744,15 @@
           // 没跨档也要查一次分化：`evolveMinLevel` 是配置项，被改到档位之间
           // （比如 8）的话，这一支就是唯一能接住那一级的地方。
           if (after.level > before.level) appendMorph(patch);
+          if (after.level > before.level) {
+            for (var mi = 0; mi < MILESTONE_LEVELS.length; mi += 1) {
+              var ml = MILESTONE_LEVELS[mi];
+              if (before.level < ml.level && after.level >= ml.level) {
+                appendNotice(patch, ml.icon, "里程碑 · Lv." + String(ml.level) + " " + ml.label, "milestone", "epic");
+                say(patch, "milestone", true);
+              }
+            }
+          }
           return;
         }
         // 蹭 epic 那套彩虹大字，进阶总得比一口饭显眼。
@@ -749,6 +762,13 @@
         // 顶到传说那一档的同一口饭里可能就够分化了：先「进阶 · 传说金鲸」，
         // 再「进化 · 代码猫」，两条特效连着放，顺序正好是这只宠物的经历。
         appendMorph(patch);
+        for (var mi2 = 0; mi2 < MILESTONE_LEVELS.length; mi2 += 1) {
+          var ml2 = MILESTONE_LEVELS[mi2];
+          if (before.level < ml2.level && after.level >= ml2.level) {
+            appendNotice(patch, ml2.icon, "里程碑 · Lv." + String(ml2.level) + " " + ml2.label, "milestone", "epic");
+            say(patch, "milestone", true);
+          }
+        }
       }
 
       /**
@@ -765,8 +785,12 @@
         var skills = patch.skills === undefined ? state.skills : patch.skills;
         var form = evolveTargetOf(pet, skills, config);
         if (form === null) return null;
-        // 一次定终身，所以这一行是**唯一**写 form 的地方。
         patch.pet = Object.assign({}, pet, { form: form.key });
+        var owned = patch.formsOwned === undefined ? state.formsOwned : patch.formsOwned;
+        if (!Array.isArray(owned)) owned = [];
+        if (owned.indexOf(form.key) < 0) {
+          patch.formsOwned = owned.concat([form.key]);
+        }
         // 蹭进阶那套彩虹大字，外加卡片上那一段 1.6s 的变身动画（.dshpet-morph
         // 靠这条特效的 source 认出来）。
         appendNotice(patch, form.icon, "进化 · " + form.label, "morph", "epic");
@@ -798,7 +822,8 @@
           skills: pick("skills"),
           memory: pick("memory"),
           comboCount: extra.comboCount === undefined ? 0 : extra.comboCount,
-          foodTier: extra.foodTier === undefined ? null : extra.foodTier
+          foodTier: extra.foodTier === undefined ? null : extra.foodTier,
+          formsOwnedCount: (function () { var f = pick("formsOwned"); return Array.isArray(f) ? f.length : 0; })()
         };
       }
 
@@ -1115,6 +1140,9 @@
           if (isNightHour(hour, from, (from + 2) % 24)) {
             chat(patch, "chat", CHAT_LINES.busy_hour(range), now);
           }
+        }
+        if (state.prestige > 0) {
+          chat(patch, "prestige_chat", null, now);
         }
       }
 
@@ -2003,10 +2031,19 @@
             snacks: config.manualSnackMax
           };
           collection[activePetId].prestige = newPrestige;
-          appendNotice(patch, "🔄", "轮回 · 第 " + String(newPrestige) + " 世 · 经验+" + String(newPrestige * 5) + "%", "prestige", "epic");
+          var tierText = newPrestige === 1 ? " · 解锁轮回徽章"
+            : newPrestige === 2 ? " · 解锁金名"
+            : newPrestige === 3 ? " · 解锁辉光" : "";
+          appendNotice(patch, "🔄", "轮回 · 第 " + String(newPrestige) + " 世 · 经验+" + String(Math.round(newPrestige * config.prestigeExpBonus * 100)) + "%" + tierText, "prestige", "epic");
           say(patch, "evolve", true);
           bumpDim(patch, "pride", config.pridePerWin * 2);
           commit(patch);
+          return true;
+        },
+        switchForm: function (formKey) {
+          if (!Array.isArray(state.formsOwned) || state.formsOwned.indexOf(formKey) < 0) return false;
+          if (formOf(formKey) === null) return false;
+          commit({ pet: Object.assign({}, state.pet, { form: formKey }) });
           return true;
         },
 

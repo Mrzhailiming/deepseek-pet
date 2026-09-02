@@ -264,6 +264,26 @@
       {
         id: "curious", icon: "🔭", label: "十万个为什么", hint: "把好奇心顶到满格",
         test: function (s) { return s.pet.curiosity >= 100; }
+      },
+      {
+        id: "level_15", icon: "⭐", label: "精英之路", hint: "养到 Lv.15",
+        test: function (s) { return s.pet.level >= 15; }
+      },
+      {
+        id: "level_20", icon: "🌟", label: "老练之证", hint: "养到 Lv.20",
+        test: function (s) { return s.pet.level >= 20; }
+      },
+      {
+        id: "level_25", icon: "💫", label: "大师之印", hint: "养到 Lv.25",
+        test: function (s) { return s.pet.level >= 25; }
+      },
+      {
+        id: "form_collector", icon: "🎭", label: "变形记", hint: "收集 2 种进化形态",
+        test: function (s) { return s.formsOwnedCount >= 2; }
+      },
+      {
+        id: "form_all", icon: "🏆", label: "全图鉴", hint: "收集全部 4 种进化形态",
+        test: function (s) { return s.formsOwnedCount >= 4; }
       }
     ];
 
@@ -354,7 +374,9 @@
       proud: ["嘿嘿，我厉害吧", "看到了吗看到了吗", "这个我在行", "哼哼～", "夸我一下嘛", "这波操作可以吧", "我超棒的！"],
       worried: ["唔…没事吧？", "有点不安…", "我们会好的吧", "要不要停一下…", "我有点担心你", "深呼吸深呼吸", "先别急…"],
       night: ["这么晚还在写代码？", "夜深了…要不歇了吧", "我陪着你，但你也别熬太久", "这个点了，眼睛还好吗", "星星都出来了，你还不睡？", "再写一会儿就睡吧"],
-      marathon: ["歇会儿吧，你坐了好久了", "起来走两步？", "干了这么久了，喝口水", "我陪你到现在，你也该累了", "站起来动一动吧", "你的肩膀还好吗"]
+      marathon: ["歇会儿吧，你坐了好久了", "起来走两步？", "干了这么久了，喝口水", "我陪你到现在，你也该累了", "站起来动一动吧", "你的肩膀还好吗"],
+      milestone: ["又一个里程碑！", "能走到这里不容易", "我们越来越强了", "看看我们走了多远", "这个等级…值得纪念", "里程碑！记一笔"],
+      prestige_chat: ["轮回过的记忆…有些模糊", "上辈子的事还记得一点", "经历越多每一口越有味道", "转世的我变强了一点", "又是新的开始…但这次不一样", "重来一遍也不坏嘛"]
     };
 
     /**
@@ -1267,5 +1289,35 @@
      * 伪随机），于是「它刚才为什么打了个哈欠」也能重放。
      */
     var IDLE_ACTS = ["yawn", "wag", "roll", "peek"];
+
+    var MILESTONE_LEVELS = [
+      { level: 15, label: "精英", icon: "⭐" },
+      { level: 20, label: "老练", icon: "🌟" },
+      { level: 25, label: "大师", icon: "💫" }
+    ];
+
+    var TITLES = [
+      { label: "新手",   test: function (c) { return true; } },
+      { label: "熟练",   test: function (c) { return c.level >= 5; } },
+      { label: "老手",   test: function (c) { return c.level >= 10; } },
+      { label: "精英",   test: function (c) { return c.level >= 15; } },
+      { label: "老练",   test: function (c) { return c.level >= 20; } },
+      { label: "大师",   test: function (c) { return c.level >= 25; } },
+      { label: "宗师",   test: function (c) { return c.level >= 30; } },
+      { label: "转世",   test: function (c) { return c.prestige >= 1; } },
+      { label: "飞升",   test: function (c) { return c.prestige >= 2; } },
+      { label: "不朽",   test: function (c) { return c.prestige >= 3; } },
+      { label: "收藏家", test: function (c) { return c.formsCount >= 2; } },
+      { label: "全图鉴", test: function (c) { return c.formsCount >= 4; } }
+    ];
+
+    function titleOf(level, prestige, formsCount) {
+      var ctx = { level: level, prestige: prestige, formsCount: formsCount };
+      var best = TITLES[0];
+      for (var i = 1; i < TITLES.length; i += 1) {
+        if (TITLES[i].test(ctx)) best = TITLES[i];
+      }
+      return best;
+    }
 
     //#endregion

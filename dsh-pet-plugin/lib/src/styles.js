@@ -37,6 +37,9 @@
       ".dshpet-card[data-tier=epic]{animation:dshpet-shake-strong 320ms ease-in-out}",
       /* 睡着了：整张卡片压暗一档，别在夜里发亮。 */
       ".dshpet-card[data-asleep=true]{opacity:.72}",
+      /* 睡着时隐藏 eat/pat 叠加层：lastAct 不会自动清零，
+         睡着后底图已换成 sleep 帧，eat/pat 帧若还显示就会叠出两张立绘。 */
+      ".dshpet-card[data-asleep=true] .dshpet-sprite-eat,.dshpet-card[data-asleep=true] .dshpet-sprite-pat{display:none!important}",
       /* 暴食 BUFF：强烈的火焰感——呼吸光晕 + 宠物放大 + 火焰粒子 + 底部暖光。 */
       ".dshpet-card[data-buff=frenzy]{border-color:rgba(255,140,40,.85);",
       "box-shadow:var(--dsw-shadow-lv3,0 6px 24px rgba(0,0,0,.35)),0 0 20px rgba(255,140,40,.5),0 0 40px rgba(255,80,20,.25);",
@@ -240,6 +243,22 @@
       "padding:2px 8px;margin-top:4px;pointer-events:auto;color:inherit;transition:border-color .2s}",
       ".dshpet-prestige-btn:hover{border-color:rgba(255,215,0,.7);",
       "background:linear-gradient(135deg,rgba(255,215,0,.3),rgba(255,140,0,.3))}",
+
+      ".dshpet-prestige-badge{position:absolute;top:-4px;right:-4px;font-size:10px;",
+      "background:linear-gradient(135deg,rgba(255,215,0,.3),rgba(255,140,0,.3));",
+      "border:1px solid rgba(255,215,0,.5);border-radius:8px;padding:1px 4px;pointer-events:none;z-index:3}",
+      ".dshpet-card[data-prestige-tier=gold] .dshpet-name,",
+      ".dshpet-card[data-prestige-tier=glow] .dshpet-name{color:#f2c744;text-shadow:0 0 6px rgba(255,215,0,.3)}",
+      "@keyframes dshpet-prestige-glow{",
+      "0%,100%{box-shadow:0 6px 24px rgba(0,0,0,.35),0 0 12px rgba(255,215,0,.12)}",
+      "50%{box-shadow:0 6px 24px rgba(0,0,0,.35),0 0 16px rgba(255,215,0,.2),0 0 32px rgba(255,215,0,.1)}}",
+      ".dshpet-card[data-prestige-tier=glow]{animation:dshpet-prestige-glow 4s ease-in-out infinite}",
+      ".dshpet-form-grid{gap:8px}",
+      ".dshpet-form-badge{font-size:22px;transition:transform .15s}",
+      ".dshpet-form-badge[data-owned=true]{opacity:1}",
+      ".dshpet-form-badge[data-active=true]{outline:2px solid rgba(77,107,254,.7);border-radius:6px;background:rgba(77,107,254,.15)}",
+      ".dshpet-form-badge[data-owned=true]:hover{transform:scale(1.2)}",
+
       ".dshpet-minigame{position:absolute;left:-20px;top:-20px;right:-20px;bottom:-20px;pointer-events:auto;z-index:10}",
       ".dshpet-mg-target{position:absolute;cursor:pointer;font-size:22px;transition:transform .15s;",
       "user-select:none;animation:dshpet-mg-pop .3s ease-out}",
@@ -472,7 +491,8 @@
       ".dshpet-card[data-idle=wag] .dshpet-whale-tail,",
       ".dshpet-card[data-idle=peek] .dshpet-whale-eyes,",
       ".dshpet-card[data-idle=yawn] .dshpet-whale-mouth,",
-      ".dshpet-card[data-idle=roll] .dshpet-whale-body",
+      ".dshpet-card[data-idle=roll] .dshpet-whale-body,",
+      ".dshpet-card[data-prestige-tier=glow]",
       "{animation:none}",
       /* 喷水柱与 Zzz 都是靠动画才可见的，关动画后给它们一个静态可见态。 */
       ".dshpet-whale-spout{opacity:1}",

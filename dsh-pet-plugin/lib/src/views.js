@@ -384,9 +384,27 @@
               key: item.id,
               className: "dshpet-badge",
               "data-owned": has ? "true" : undefined,
-              // 没解锁的写着怎么解锁；解锁了的就只报名字。
               title: item.label + (has ? "" : " · " + item.hint)
             }, item.icon);
+          })));
+      }
+      if (config.evolveEnabled) {
+        var formsOwned = state.formsOwned || [];
+        rows.push(h("div", { key: "t-forms", className: "dshpet-panel-title" },
+          "形态图鉴 " + String(formsOwned.length) + "/" + String(FORMS.length)));
+        rows.push(h("div", { key: "form-grid", className: "dshpet-grid dshpet-form-grid" },
+          FORMS.map(function (form) {
+            var has = formsOwned.indexOf(form.key) >= 0;
+            var active = state.pet.form === form.key;
+            return h("span", {
+              key: form.key,
+              className: "dshpet-badge dshpet-form-badge",
+              "data-owned": has ? "true" : undefined,
+              "data-active": active ? "true" : undefined,
+              title: form.label + (has ? (active ? "（当前）" : "（点击切换）") : " · 未解锁"),
+              onClick: has && !active ? function (e) { stopBubbling(e); store.switchForm(form.key); } : undefined,
+              style: has && !active ? { cursor: "pointer" } : undefined
+            }, form.icon);
           })));
       }
       return h(
@@ -854,6 +872,8 @@
         // 长相：没进化就按等级算（不存档、不占状态），进化过就按 pet.form 走。
         // 和头像里那次 lookOf 是同一个函数，所以卡片和头像不会各说一套。
         var look = lookOf(pet);
+        var prestigeTier = state.prestige >= 3 ? "glow" : state.prestige >= 2 ? "gold" : state.prestige >= 1 ? "badge" : undefined;
+        var petTitle = titleOf(pet.level, state.prestige, Array.isArray(state.formsOwned) ? state.formsOwned.length : 0);
         // 进阶金环 / 变身白光都直接挂在对应的那条特效上：特效被 dropEffect
         // 撤掉，光也跟着没，不会闪回。
         var evolving = null;
@@ -910,6 +930,7 @@
                 // 小动作挂在卡片上（而不是头像上）：几条 idle 各动一个部件，
                 // 用一个 data-idle 派发比给每个部件加类干净。
                 "data-idle": state.idleAct === null ? undefined : state.idleAct,
+                "data-prestige-tier": prestigeTier,
                 // 收纳面板与成就/任务面板互斥：成就开着时 popover 不展开，避免两层浮层重叠。
                 "data-detail-open": detailOpen && !state.panelOpen ? "true" : undefined,
                 title: "心情 " + String(pet.mood) + " / 精力 " + String(pet.energy)
@@ -993,7 +1014,13 @@
                 // 变身：白光罩住 → 弹一下 → 新形态露出来，1.6s 一次性。
                 morphing === null
                   ? null
-                  : h("span", { key: "morph-" + morphing.key, className: "dshpet-morph" })
+                  : h("span", { key: "morph-" + morphing.key, className: "dshpet-morph" }),
+                state.prestige >= 1
+                  ? h("span", {
+                    className: "dshpet-prestige-badge",
+                    title: "第 " + String(state.prestige) + " 世"
+                  }, "🔄" + String(state.prestige))
+                  : null
               ),
               // 多宠物右箭头
               state.petCount > 1
@@ -1029,7 +1056,7 @@
                     "div",
                     { className: "dshpet-meta" },
                   h("div", { className: "dshpet-name" },
-                    pet.name + " · Lv." + String(pet.level) + " " + look.label + (state.prestige > 0 ? " · 🔄" + String(state.prestige) : ""),
+                    pet.name + " · Lv." + String(pet.level) + " " + petTitle.label + (state.prestige > 0 ? " · 🔄" + String(state.prestige) : ""),
                     // 收藏星
                     state.petCount > 1
                       ? h("button", {
