@@ -68,6 +68,7 @@
       var lineAt = {};
 
       // ─── 互动（摸头 / 小动作） ───
+      var lastActTimer = 0;
       var patAt = 0;
       var patRun = 0;
       var idleAt = 0;
@@ -215,6 +216,8 @@
         bubbleSeq = 0;
         lastBubbleDim = false;
         lineAt = {};
+        if (lastActTimer !== 0) clearTimeout(lastActTimer);
+        lastActTimer = 0;
         patAt = 0;
         patRun = 0;
         idleAt = 0;
@@ -239,6 +242,14 @@
         lastSkillUp = null;
         drag = createDragManager();
         miniGameAt = 0;
+      }
+
+      function scheduleLastActClear(delayMs) {
+        if (lastActTimer !== 0) clearTimeout(lastActTimer);
+        lastActTimer = setTimeout(function () {
+          lastActTimer = 0;
+          if (state.lastAct !== null) commit({ lastAct: null }, true);
+        }, delayMs);
       }
 
       var persist = createPersistenceV2(config, function () {
@@ -572,10 +583,21 @@
         lastRegenAt = offlineFrom;
         snackAt = offlineFrom;
         state.asleep = shouldSleep(bootAt, state.pet);
+        var petBeforeSettle = state.pet;
         state.pet = settleVitals(bootAt);
+        var away = bootAt - Math.min(savedAt, bootAt);
+        if (config.offlineSelfCare && away >= config.sleepAfterMs) {
+          var scPet = state.pet;
+          var scHunger = scPet.hunger;
+          var scMood = scPet.mood;
+          if (scHunger > config.offlineHungerCap) scHunger = config.offlineHungerCap;
+          if (scMood < config.offlineMoodFloor) scMood = config.offlineMoodFloor;
+          if (scHunger !== scPet.hunger || scMood !== scPet.mood) {
+            state.pet = Object.assign({}, scPet, { hunger: scHunger, mood: scMood });
+          }
+        }
         state.snacks = settleSnacks(bootAt);
         state.daily = settleDaily(bootAt);
-        var away = bootAt - Math.min(savedAt, bootAt);
         if (away >= config.careComebackMs) comebackMs = away;
       }
 
@@ -1295,22 +1317,24 @@
           var count = combo.tick(now);
           var multiplier = multiplierOf(count);
           var buff = settleBuff(now);
-          // 挑食：同一种食材连着吃会腻，最爱的那一口有加成。计数放在 store 的
+          // 挑食：换口味有加成，最爱的那一口也有加成。计数放在 store 的
           // 私有变量里而不落盘——「腻了」是当下这串活动的性质，不该跨天记账。
           var favorite = false;
           var bored = false;
+          var variety = false;
           var taste = 1;
           if (config.pickyEnabled) {
             if (source === tasteSource) {
               tasteCount += 1;
             } else {
+              variety = tasteSource !== null;
               tasteSource = source;
               tasteCount = 1;
             }
             favorite = source === config.favoriteSource;
             bored = tasteCount > config.boredomAfter;
             if (favorite) taste *= config.favoriteBonus;
-            if (bored) taste *= config.boredomFactor;
+            if (variety) taste *= config.varietyBonus;
           }
           var frenzy = buff !== null && buff.kind === "frenzy";
           // 主项来自 token 量级，连击只加一个 0..+5 的常数：连击若也走乘法，
@@ -1415,19 +1439,23 @@
             && pet.energy >= config.lowEnergyAt
             && patch.pet.energy < config.lowEnergyAt
           ) line = "tired";
-          else if (bored) line = "bored";
+          else if (variety) line = "variety";
           else if (tier !== state.comboTier && tier !== "normal") line = "combo";
           else if (favorite) line = "favorite";
+          else if (bored) line = "bored";
           // 关怀要排在日常台词**前面**：它半小时才够格说一次，而日常台词每 4 秒
           // 就有一句在等着。排在后面的话，喂食一稀疏（纯聊天、没有工具循环）
           // 日常台词次次都说得出口，关怀就永远轮不到 —— 于是深夜那句永远不响。
           careFor(patch, now);
           say(patch, line, opened);
           wake(patch, now);
-          // 「表达」技能长的是模型写出来的字数：每 2000 输出 token 算 1 点，
-          // 单条最多 +5（一次超长输出不该顶掉几十次工具调用的份量）。
+          // 「表达」技能有两个来源：
+          //   generation — 模型写出来的字数，每 800 输出 token 算 1 点，单条最多 +8
+          //   user_input — 用户自己在打字也是表达，每条 +1
           if (source === "generation" && typeof output === "number") {
-            applySkill(patch, "writing", Math.min(5, Math.floor(output / 2000)));
+            applySkill(patch, "writing", Math.min(8, Math.floor(output / 800)));
+          } else if (source === "user_input") {
+            applySkill(patch, "writing", 1);
           }
           var streak = bumpStreak(now);
           patch.streakDay = streak.streakDay;
@@ -1448,6 +1476,7 @@
             globalStats.achievementsUnlockedAllTime += patch.achievements.length - state.achievements.length;
           }
           commit(patch);
+          scheduleLastActClear(500);
           doCheckEggMilestones();
           // 随机掉蛋：每次喂食有小概率获得一枚蛋（里程碑之外的惊喜通道）
           if (config.eggDropEnabled && eggs.length < MAX_EGGS) {
@@ -1667,6 +1696,7 @@
           // 手喂也能把等级顶过门槛（一口 1 点经验，也算数）。
           appendEvolve(patch, pet, patch.pet);
           commit(patch);
+          scheduleLastActClear(500);
           return true;
         },
         /**
@@ -1706,6 +1736,7 @@
           patch.pet = applyDaily(patch, patch.pet, now, { pats: 1 });
           checkAchievements(patch, patch.pet, {});
           commit(patch);
+          scheduleLastActClear(500);
           return true;
         },
         /** 开 / 收成就与任务面板（纯界面状态，不落盘）。 */
@@ -2128,6 +2159,8 @@
           buffTimer = 0;
           if (idleTimer !== 0) clearTimeout(idleTimer);
           idleTimer = 0;
+          if (lastActTimer !== 0) clearTimeout(lastActTimer);
+          lastActTimer = 0;
           detachWindowListeners();
           persist.flush();
           persist.dispose();

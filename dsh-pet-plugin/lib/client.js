@@ -148,10 +148,12 @@ window.__ModuleLoader__.load({
       favoriteSource: "tool_result",
       // 吃到最爱时食物量的倍数
       favoriteBonus: 1.3,
-      // 连着吃同一种超过这么多口就腻了
-      boredomAfter: 8,
-      // 腻了之后食物量的倍数
-      boredomFactor: 0.75,
+      // 连着吃同一种超过这么多口触发「腻了」台词（纯表现，不扣食物量）
+      boredomAfter: 15,
+      // 已废弃：不再惩罚连吃同种（保留字段兼容旧覆盖）
+      boredomFactor: 1,
+      // 换口味时食物量的倍数（奖励多样化饮食）
+      varietyBonus: 1.15,
       // 连击顶格触发的暴食 BUFF
       frenzyEnabled: true,
       frenzyMs: 15000,
@@ -266,6 +268,12 @@ window.__ModuleLoader__.load({
       saveDebounceMs: 1500,
       // 离线饥饿最多按这么长时间结算（默认 24h），也顺手兜住系统时钟乱跳
       offlineRegenCapMs: 86400000,
+      // 离线自理：宠物会自己觅食和休息，回来时数值不至于崩塌
+      offlineSelfCare: true,
+      // 离线期间饥饿最多涨到这个值（高于此值算宠物自己找了东西吃）
+      offlineHungerCap: 70,
+      // 离线期间心情最低降到这个值（低于此值算宠物自己调整了情绪）
+      offlineMoodFloor: 30,
       // 宠物外观：DeepSeek 二次元小鲸
       petName: "大肥鱼",
       petSpecies: "深海小鲸",
@@ -770,7 +778,8 @@ window.__ModuleLoader__.load({
       tool_result: ["工具跑完了！", "这一锅真香", "再来一个工具！", "热的！趁热吃", "这个有嚼头", "工具的味道最正", "还有吗还有吗", "又吃到好东西了", "嗯！这口正", "刚出炉的最好吃", "下一道！", "工具料理是我的最爱"],
       feast: ["好大一锅！", "吃不下了…还能再来一口", "这么大一份？！", "我的天，这一盘", "撑…但是值得", "这一口顶三口", "肚子要撑爆了", "份量好足！", "今天赢麻了"],
       favorite: ["这个我最爱！", "就是这个味儿！", "呜哇，是这个！", "等的就是它", "再来一份好不好", "对味儿了！", "天天吃这个都行！", "这一口值了", "嘿嘿我的最爱"],
-      bored: ["又是这个…有点腻了", "换个口味嘛", "唔…我吃过很多这个了", "能不能来点别的", "有点吃伤了", "还是这个味道啊", "能来点新花样吗", "连着吃好几口了…", "吃伤了吃伤了"],
+      variety: ["换了口味！", "新鲜！", "唔，不一样的味道", "换着吃真好", "这口不一样！", "多样化饮食！", "轮着吃最香", "又是新菜色", "这个换得好"],
+      bored: ["一直吃这个…", "换个口味嘛", "唔…我吃过很多这个了", "能不能来点别的", "有点腻了", "还是这个味道啊", "能来点新花样吗", "连着吃好多口了…", "也行吧…"],
       frenzy: ["开吃！！", "全都端上来！", "我的时代来了！", "别停别停别停", "冲！！", "这波我能吃很多", "暴风吸入！！", "我能吞下整个宇宙！", "食力全开！！"],
       hungry: ["肚子空了…", "有零食吗？", "咕…", "我我我饿了", "看看我，饿着呢", "喂点东西嘛…", "肚子在叫了…", "再不吃要饿晕了", "我瘦了…"],
       snack: ["糖！", "谢谢～", "甜的！", "还有吗？", "你最好了", "唔…幸福", "好甜好开心", "这颗糖真好吃", "嘿嘿你对我真好"],
@@ -1999,6 +2008,23 @@ window.__ModuleLoader__.load({
       ".dshpet-form-badge[data-owned=true]{opacity:1}",
       ".dshpet-form-badge[data-active=true]{outline:2px solid rgba(77,107,254,.7);border-radius:6px;background:rgba(77,107,254,.15)}",
       ".dshpet-form-badge[data-owned=true]:hover{transform:scale(1.2)}",
+
+      ".dshpet-mem-label{font-size:10px;font-weight:600;color:var(--dsw-alias-label-secondary,#a9a9b2);margin-top:6px}",
+      ".dshpet-mem-row{display:flex;align-items:center;gap:4px;font-size:11px;line-height:16px}",
+      ".dshpet-mem-name{flex:0 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:80px}",
+      ".dshpet-mem-bar{flex:1 1 40px;height:3px;border-radius:1.5px;",
+      "background:var(--dsw-alias-bg-layer-3,rgba(255,255,255,.06))}",
+      ".dshpet-mem-bar>i{display:block;height:100%;border-radius:1.5px;background:#6f8cff;transition:width .3s}",
+      ".dshpet-mem-n{flex:0 0 auto;font-size:10px;font-variant-numeric:tabular-nums;",
+      "color:var(--dsw-alias-label-secondary,#a9a9b2)}",
+      ".dshpet-hour-chart{display:flex;align-items:flex-end;gap:1px;height:28px;margin-top:4px;",
+      "padding:0 1px;border-radius:3px;background:var(--dsw-alias-bg-layer-3,rgba(255,255,255,.06))}",
+      ".dshpet-hour-bar{flex:1;min-width:0;border-radius:1px 1px 0 0;background:#6f8cff;opacity:.7;transition:height .3s}",
+      ".dshpet-hour-labels{display:flex;justify-content:space-between;font-size:8px;line-height:10px;",
+      "color:var(--dsw-alias-label-secondary,#a9a9b2);padding:0 1px}",
+      ".dshpet-mem-errbar{height:3px;border-radius:1.5px;margin-top:2px;",
+      "background:var(--dsw-alias-bg-layer-3,rgba(255,255,255,.06))}",
+      ".dshpet-mem-errbar>i{display:block;height:100%;border-radius:1.5px;background:#47e6b1;transition:width .3s}",
 
       ".dshpet-minigame{position:absolute;left:-20px;top:-20px;right:-20px;bottom:-20px;pointer-events:auto;z-index:10}",
       ".dshpet-mg-target{position:absolute;cursor:pointer;font-size:22px;transition:transform .15s;",
@@ -3756,6 +3782,7 @@ window.__ModuleLoader__.load({
       var lineAt = {};
 
       // ─── 互动（摸头 / 小动作） ───
+      var lastActTimer = 0;
       var patAt = 0;
       var patRun = 0;
       var idleAt = 0;
@@ -3903,6 +3930,8 @@ window.__ModuleLoader__.load({
         bubbleSeq = 0;
         lastBubbleDim = false;
         lineAt = {};
+        if (lastActTimer !== 0) clearTimeout(lastActTimer);
+        lastActTimer = 0;
         patAt = 0;
         patRun = 0;
         idleAt = 0;
@@ -3927,6 +3956,14 @@ window.__ModuleLoader__.load({
         lastSkillUp = null;
         drag = createDragManager();
         miniGameAt = 0;
+      }
+
+      function scheduleLastActClear(delayMs) {
+        if (lastActTimer !== 0) clearTimeout(lastActTimer);
+        lastActTimer = setTimeout(function () {
+          lastActTimer = 0;
+          if (state.lastAct !== null) commit({ lastAct: null }, true);
+        }, delayMs);
       }
 
       var persist = createPersistenceV2(config, function () {
@@ -4260,10 +4297,21 @@ window.__ModuleLoader__.load({
         lastRegenAt = offlineFrom;
         snackAt = offlineFrom;
         state.asleep = shouldSleep(bootAt, state.pet);
+        var petBeforeSettle = state.pet;
         state.pet = settleVitals(bootAt);
+        var away = bootAt - Math.min(savedAt, bootAt);
+        if (config.offlineSelfCare && away >= config.sleepAfterMs) {
+          var scPet = state.pet;
+          var scHunger = scPet.hunger;
+          var scMood = scPet.mood;
+          if (scHunger > config.offlineHungerCap) scHunger = config.offlineHungerCap;
+          if (scMood < config.offlineMoodFloor) scMood = config.offlineMoodFloor;
+          if (scHunger !== scPet.hunger || scMood !== scPet.mood) {
+            state.pet = Object.assign({}, scPet, { hunger: scHunger, mood: scMood });
+          }
+        }
         state.snacks = settleSnacks(bootAt);
         state.daily = settleDaily(bootAt);
-        var away = bootAt - Math.min(savedAt, bootAt);
         if (away >= config.careComebackMs) comebackMs = away;
       }
 
@@ -4983,22 +5031,24 @@ window.__ModuleLoader__.load({
           var count = combo.tick(now);
           var multiplier = multiplierOf(count);
           var buff = settleBuff(now);
-          // 挑食：同一种食材连着吃会腻，最爱的那一口有加成。计数放在 store 的
+          // 挑食：换口味有加成，最爱的那一口也有加成。计数放在 store 的
           // 私有变量里而不落盘——「腻了」是当下这串活动的性质，不该跨天记账。
           var favorite = false;
           var bored = false;
+          var variety = false;
           var taste = 1;
           if (config.pickyEnabled) {
             if (source === tasteSource) {
               tasteCount += 1;
             } else {
+              variety = tasteSource !== null;
               tasteSource = source;
               tasteCount = 1;
             }
             favorite = source === config.favoriteSource;
             bored = tasteCount > config.boredomAfter;
             if (favorite) taste *= config.favoriteBonus;
-            if (bored) taste *= config.boredomFactor;
+            if (variety) taste *= config.varietyBonus;
           }
           var frenzy = buff !== null && buff.kind === "frenzy";
           // 主项来自 token 量级，连击只加一个 0..+5 的常数：连击若也走乘法，
@@ -5103,19 +5153,23 @@ window.__ModuleLoader__.load({
             && pet.energy >= config.lowEnergyAt
             && patch.pet.energy < config.lowEnergyAt
           ) line = "tired";
-          else if (bored) line = "bored";
+          else if (variety) line = "variety";
           else if (tier !== state.comboTier && tier !== "normal") line = "combo";
           else if (favorite) line = "favorite";
+          else if (bored) line = "bored";
           // 关怀要排在日常台词**前面**：它半小时才够格说一次，而日常台词每 4 秒
           // 就有一句在等着。排在后面的话，喂食一稀疏（纯聊天、没有工具循环）
           // 日常台词次次都说得出口，关怀就永远轮不到 —— 于是深夜那句永远不响。
           careFor(patch, now);
           say(patch, line, opened);
           wake(patch, now);
-          // 「表达」技能长的是模型写出来的字数：每 2000 输出 token 算 1 点，
-          // 单条最多 +5（一次超长输出不该顶掉几十次工具调用的份量）。
+          // 「表达」技能有两个来源：
+          //   generation — 模型写出来的字数，每 800 输出 token 算 1 点，单条最多 +8
+          //   user_input — 用户自己在打字也是表达，每条 +1
           if (source === "generation" && typeof output === "number") {
-            applySkill(patch, "writing", Math.min(5, Math.floor(output / 2000)));
+            applySkill(patch, "writing", Math.min(8, Math.floor(output / 800)));
+          } else if (source === "user_input") {
+            applySkill(patch, "writing", 1);
           }
           var streak = bumpStreak(now);
           patch.streakDay = streak.streakDay;
@@ -5136,6 +5190,7 @@ window.__ModuleLoader__.load({
             globalStats.achievementsUnlockedAllTime += patch.achievements.length - state.achievements.length;
           }
           commit(patch);
+          scheduleLastActClear(500);
           doCheckEggMilestones();
           // 随机掉蛋：每次喂食有小概率获得一枚蛋（里程碑之外的惊喜通道）
           if (config.eggDropEnabled && eggs.length < MAX_EGGS) {
@@ -5355,6 +5410,7 @@ window.__ModuleLoader__.load({
           // 手喂也能把等级顶过门槛（一口 1 点经验，也算数）。
           appendEvolve(patch, pet, patch.pet);
           commit(patch);
+          scheduleLastActClear(500);
           return true;
         },
         /**
@@ -5394,6 +5450,7 @@ window.__ModuleLoader__.load({
           patch.pet = applyDaily(patch, patch.pet, now, { pats: 1 });
           checkAchievements(patch, patch.pet, {});
           commit(patch);
+          scheduleLastActClear(500);
           return true;
         },
         /** 开 / 收成就与任务面板（纯界面状态，不落盘）。 */
@@ -5816,6 +5873,8 @@ window.__ModuleLoader__.load({
           buffTimer = 0;
           if (idleTimer !== 0) clearTimeout(idleTimer);
           idleTimer = 0;
+          if (lastActTimer !== 0) clearTimeout(lastActTimer);
+          lastActTimer = 0;
           detachWindowListeners();
           persist.flush();
           persist.dispose();
@@ -6211,29 +6270,90 @@ window.__ModuleLoader__.load({
       }
       if (config.memoryEnabled) {
         var memory = state.memory;
-        // 天数按「最后一次互动」算而不是 Date.now()：渲染是纯函数，同一份
-        // 状态渲染两次该得到同一块界面（也让冒烟测试不跟着挂钟走）。
+        var memDays = togetherDaysOf(memory, state.lastFeedAt);
         rows.push(h("div", { key: "t-memory", className: "dshpet-panel-title" },
-          "记忆 · 相处 " + String(togetherDaysOf(memory, state.lastFeedAt)) + " 天"));
-        var lines = [];
+          "记忆 · 相处 " + String(memDays) + " 天"));
+
+        var memHasData = memory.files.length > 0 || memory.tools.length > 0;
+        if (!memHasData) {
+          rows.push(h("div", { key: "m-empty", className: "dshpet-sub" }, "还在慢慢认识你"));
+        }
+
         if (memory.files.length > 0) {
-          lines.push("📄 常改 " + memory.files.slice(0, config.memoryFileTop).map(function (row) {
-            return row.name + "(" + String(row.count) + ")";
-          }).join(" "));
+          var fileMax = memory.files[0].count;
+          rows.push(h("div", { key: "m-ft", className: "dshpet-mem-label" }, "📄 常改文件"));
+          var fileSlice = memory.files.slice(0, Math.min(config.memoryFileTop, 5));
+          fileSlice.forEach(function (row, fi) {
+            var pct = Math.round((row.count / fileMax) * 100);
+            rows.push(h("div", {
+              key: "m-f" + String(fi),
+              className: "dshpet-mem-row",
+              title: row.name + " · 改了 " + String(row.count) + " 次"
+            },
+              h("span", { className: "dshpet-mem-name" }, row.name),
+              h("span", { className: "dshpet-mem-bar" },
+                h("i", { style: { width: String(pct) + "%" } })),
+              h("span", { className: "dshpet-mem-n" }, String(row.count))
+            ));
+          });
         }
+
         if (memory.tools.length > 0) {
-          lines.push("🔧 最常用 " + memory.tools[0].name + "(" + String(memory.tools[0].count) + ")");
+          var toolMax = memory.tools[0].count;
+          var toolSlice = memory.tools.slice(0, 3);
+          rows.push(h("div", { key: "m-tt", className: "dshpet-mem-label" }, "🔧 常用工具"));
+          toolSlice.forEach(function (row, ti) {
+            var pct = Math.round((row.count / toolMax) * 100);
+            rows.push(h("div", {
+              key: "m-t" + String(ti),
+              className: "dshpet-mem-row",
+              title: row.name + " · 用了 " + String(row.count) + " 次"
+            },
+              h("span", { className: "dshpet-mem-name" }, row.name),
+              h("span", { className: "dshpet-mem-bar" },
+                h("i", { style: { width: String(pct) + "%" } })),
+              h("span", { className: "dshpet-mem-n" }, String(row.count))
+            ));
+          });
         }
-        var busy = busyHoursOf(memory.hours);
-        if (busy !== null) lines.push("🕘 常在 " + busy + " 点干活");
+
+        var hourMax = 0;
+        for (var hi = 0; hi < 24; hi += 1) {
+          if (memory.hours[hi] > hourMax) hourMax = memory.hours[hi];
+        }
+        if (hourMax > 0) {
+          rows.push(h("div", { key: "m-ht", className: "dshpet-mem-label" },
+            "🕘 活动时段" + (function () {
+              var busy = busyHoursOf(memory.hours);
+              return busy !== null ? "（" + busy + " 点最活跃）" : "";
+            })()));
+          var hourBars = [];
+          for (var hj = 0; hj < 24; hj += 1) {
+            var hPct = Math.round((memory.hours[hj] / hourMax) * 100);
+            hourBars.push(h("span", {
+              key: "h" + String(hj),
+              className: "dshpet-hour-bar",
+              title: String(hj) + " 点 · " + String(memory.hours[hj]) + " 次",
+              style: { height: String(Math.max(hPct, 2)) + "%" }
+            }));
+          }
+          rows.push(h("div", { key: "m-hours", className: "dshpet-hour-chart" }, hourBars));
+          rows.push(h("div", { key: "m-hlbl", className: "dshpet-hour-labels" },
+            h("span", null, "0"),
+            h("span", null, "6"),
+            h("span", null, "12"),
+            h("span", null, "18"),
+            h("span", null, "23")
+          ));
+        }
+
         if (memory.errors > 0) {
-          lines.push("💪 跨过 " + String(memory.recoveries) + "/" + String(memory.errors) + " 次报错");
+          var recPct = memory.errors > 0 ? Math.round((memory.recoveries / memory.errors) * 100) : 0;
+          rows.push(h("div", { key: "m-err", className: "dshpet-mem-label" },
+            "💪 报错 " + String(memory.errors) + " 次 · 跨过 " + String(memory.recoveries) + " 次（" + String(recPct) + "%）"));
+          rows.push(h("div", { key: "m-errbar", className: "dshpet-mem-errbar" },
+            h("i", { style: { width: String(recPct) + "%" } })));
         }
-        // 一次都没观察到工具调用时给一句占位，免得标题下面空着一片。
-        if (lines.length === 0) lines.push("还在慢慢认识你");
-        lines.forEach(function (text, at) {
-          rows.push(h("div", { key: "m-" + String(at), className: "dshpet-sub" }, text));
-        });
       }
       if (config.achievementsEnabled) {
         rows.push(h("div", { key: "t-badge", className: "dshpet-panel-title" },

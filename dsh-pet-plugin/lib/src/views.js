@@ -350,29 +350,90 @@
       }
       if (config.memoryEnabled) {
         var memory = state.memory;
-        // 天数按「最后一次互动」算而不是 Date.now()：渲染是纯函数，同一份
-        // 状态渲染两次该得到同一块界面（也让冒烟测试不跟着挂钟走）。
+        var memDays = togetherDaysOf(memory, state.lastFeedAt);
         rows.push(h("div", { key: "t-memory", className: "dshpet-panel-title" },
-          "记忆 · 相处 " + String(togetherDaysOf(memory, state.lastFeedAt)) + " 天"));
-        var lines = [];
+          "记忆 · 相处 " + String(memDays) + " 天"));
+
+        var memHasData = memory.files.length > 0 || memory.tools.length > 0;
+        if (!memHasData) {
+          rows.push(h("div", { key: "m-empty", className: "dshpet-sub" }, "还在慢慢认识你"));
+        }
+
         if (memory.files.length > 0) {
-          lines.push("📄 常改 " + memory.files.slice(0, config.memoryFileTop).map(function (row) {
-            return row.name + "(" + String(row.count) + ")";
-          }).join(" "));
+          var fileMax = memory.files[0].count;
+          rows.push(h("div", { key: "m-ft", className: "dshpet-mem-label" }, "📄 常改文件"));
+          var fileSlice = memory.files.slice(0, Math.min(config.memoryFileTop, 5));
+          fileSlice.forEach(function (row, fi) {
+            var pct = Math.round((row.count / fileMax) * 100);
+            rows.push(h("div", {
+              key: "m-f" + String(fi),
+              className: "dshpet-mem-row",
+              title: row.name + " · 改了 " + String(row.count) + " 次"
+            },
+              h("span", { className: "dshpet-mem-name" }, row.name),
+              h("span", { className: "dshpet-mem-bar" },
+                h("i", { style: { width: String(pct) + "%" } })),
+              h("span", { className: "dshpet-mem-n" }, String(row.count))
+            ));
+          });
         }
+
         if (memory.tools.length > 0) {
-          lines.push("🔧 最常用 " + memory.tools[0].name + "(" + String(memory.tools[0].count) + ")");
+          var toolMax = memory.tools[0].count;
+          var toolSlice = memory.tools.slice(0, 3);
+          rows.push(h("div", { key: "m-tt", className: "dshpet-mem-label" }, "🔧 常用工具"));
+          toolSlice.forEach(function (row, ti) {
+            var pct = Math.round((row.count / toolMax) * 100);
+            rows.push(h("div", {
+              key: "m-t" + String(ti),
+              className: "dshpet-mem-row",
+              title: row.name + " · 用了 " + String(row.count) + " 次"
+            },
+              h("span", { className: "dshpet-mem-name" }, row.name),
+              h("span", { className: "dshpet-mem-bar" },
+                h("i", { style: { width: String(pct) + "%" } })),
+              h("span", { className: "dshpet-mem-n" }, String(row.count))
+            ));
+          });
         }
-        var busy = busyHoursOf(memory.hours);
-        if (busy !== null) lines.push("🕘 常在 " + busy + " 点干活");
+
+        var hourMax = 0;
+        for (var hi = 0; hi < 24; hi += 1) {
+          if (memory.hours[hi] > hourMax) hourMax = memory.hours[hi];
+        }
+        if (hourMax > 0) {
+          rows.push(h("div", { key: "m-ht", className: "dshpet-mem-label" },
+            "🕘 活动时段" + (function () {
+              var busy = busyHoursOf(memory.hours);
+              return busy !== null ? "（" + busy + " 点最活跃）" : "";
+            })()));
+          var hourBars = [];
+          for (var hj = 0; hj < 24; hj += 1) {
+            var hPct = Math.round((memory.hours[hj] / hourMax) * 100);
+            hourBars.push(h("span", {
+              key: "h" + String(hj),
+              className: "dshpet-hour-bar",
+              title: String(hj) + " 点 · " + String(memory.hours[hj]) + " 次",
+              style: { height: String(Math.max(hPct, 2)) + "%" }
+            }));
+          }
+          rows.push(h("div", { key: "m-hours", className: "dshpet-hour-chart" }, hourBars));
+          rows.push(h("div", { key: "m-hlbl", className: "dshpet-hour-labels" },
+            h("span", null, "0"),
+            h("span", null, "6"),
+            h("span", null, "12"),
+            h("span", null, "18"),
+            h("span", null, "23")
+          ));
+        }
+
         if (memory.errors > 0) {
-          lines.push("💪 跨过 " + String(memory.recoveries) + "/" + String(memory.errors) + " 次报错");
+          var recPct = memory.errors > 0 ? Math.round((memory.recoveries / memory.errors) * 100) : 0;
+          rows.push(h("div", { key: "m-err", className: "dshpet-mem-label" },
+            "💪 报错 " + String(memory.errors) + " 次 · 跨过 " + String(memory.recoveries) + " 次（" + String(recPct) + "%）"));
+          rows.push(h("div", { key: "m-errbar", className: "dshpet-mem-errbar" },
+            h("i", { style: { width: String(recPct) + "%" } })));
         }
-        // 一次都没观察到工具调用时给一句占位，免得标题下面空着一片。
-        if (lines.length === 0) lines.push("还在慢慢认识你");
-        lines.forEach(function (text, at) {
-          rows.push(h("div", { key: "m-" + String(at), className: "dshpet-sub" }, text));
-        });
       }
       if (config.achievementsEnabled) {
         rows.push(h("div", { key: "t-badge", className: "dshpet-panel-title" },

@@ -120,10 +120,12 @@
       favoriteSource: "tool_result",
       // 吃到最爱时食物量的倍数
       favoriteBonus: 1.3,
-      // 连着吃同一种超过这么多口就腻了
-      boredomAfter: 8,
-      // 腻了之后食物量的倍数
-      boredomFactor: 0.75,
+      // 连着吃同一种超过这么多口触发「腻了」台词（纯表现，不扣食物量）
+      boredomAfter: 15,
+      // 已废弃：不再惩罚连吃同种（保留字段兼容旧覆盖）
+      boredomFactor: 1,
+      // 换口味时食物量的倍数（奖励多样化饮食）
+      varietyBonus: 1.15,
       // 连击顶格触发的暴食 BUFF
       frenzyEnabled: true,
       frenzyMs: 15000,
@@ -238,6 +240,12 @@
       saveDebounceMs: 1500,
       // 离线饥饿最多按这么长时间结算（默认 24h），也顺手兜住系统时钟乱跳
       offlineRegenCapMs: 86400000,
+      // 离线自理：宠物会自己觅食和休息，回来时数值不至于崩塌
+      offlineSelfCare: true,
+      // 离线期间饥饿最多涨到这个值（高于此值算宠物自己找了东西吃）
+      offlineHungerCap: 70,
+      // 离线期间心情最低降到这个值（低于此值算宠物自己调整了情绪）
+      offlineMoodFloor: 30,
       // 宠物外观：DeepSeek 二次元小鲸
       petName: "大肥鱼",
       petSpecies: "深海小鲸",

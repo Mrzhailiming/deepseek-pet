@@ -777,7 +777,7 @@ storage.set(STATE_KEY, JSON.stringify({
   totalFeeds: 1, totalTokens: 10,
   tokensBySource: { user_input: 10, generation: 0, tool_result: 0 },
 }))
-assert.equal(bootFresh().readState().pet.hunger, 100, '离线太久最多饿到 100')
+assert.equal(bootFresh().readState().pet.hunger, 70, '离线自理：饥饿封顶在 offlineHungerCap')
 
 // 坏存档 / 版本对不上 → 当作新宠物，而不是抛异常。
 storage.set(STATE_KEY, '{oops')
@@ -1474,23 +1474,19 @@ try {
     hit.fx.expAmount, expOf('tool_result', hit.pre.pet, 8, false, toolTokensOf(4000)),
     `经验应当带上心情摆幅，实际 ${hit.fx.expAmount}`,
   )
-  // 第 9 口同一种就腻了：1.3 × 0.75，比刚才少。
-  const bored = eatOne(toolEvent(4000))
+  // 第 9 口同一种不再惩罚（仍有最爱加成 1.3）。
+  const ninth = eatOne(toolEvent(4000))
   assert.equal(
-    bored.fx.foodAmount, foodOf(toolTokensOf(4000), 9, 1.3 * 0.75, false),
-    `连着吃第 9 口应当腻了，实际 ${bored.fx.foodAmount}`,
+    ninth.fx.foodAmount, foodOf(toolTokensOf(4000), 9, 1.3, false),
+    `连着吃第 9 口应当保持最爱加成，实际 ${ninth.fx.foodAmount}`,
   )
-  assert.ok(
-    bored.fx.foodAmount < hit.fx.foodAmount,
-    `腻了应当比刚才少：${hit.fx.foodAmount} → ${bored.fx.foodAmount}`,
-  )
-  // 换一种口味就不腻了：同样的 token 量，没有加成也没有折扣。
+  // 换一种口味有换口味奖励（varietyBonus 1.15）。
   const other = eatOne(assistantEvent(1000))
   assert.equal(other.combo, 10, '第十口应当顶格')
   assert.equal(other.frenzy, false, '第十口之前还没有 BUFF')
   assert.equal(
-    other.fx.foodAmount, foodOf(1000, 10, 1, false),
-    `换了口味口味系数应当回到 1，实际 ${other.fx.foodAmount}`,
+    other.fx.foodAmount, foodOf(1000, 10, 1.15, false),
+    `换了口味应当有 1.15 倍加成，实际 ${other.fx.foodAmount}`,
   )
   assert.equal(
     other.fx.expAmount, expOf('generation', other.pre.pet, 10, false, 1000),
@@ -1522,8 +1518,8 @@ try {
     '双倍必须真的翻上去',
   )
   assert.equal(
-    inBuff.fx.foodAmount, foodOf(toolTokensOf(4000), 10, 1.3, true),
-    `暴食期间食物也该多一点，实际 ${inBuff.fx.foodAmount}`,
+    inBuff.fx.foodAmount, foodOf(toolTokensOf(4000), 10, 1.3 * 1.15, true),
+    `暴食期间食物也该多一点（含换口味加成），实际 ${inBuff.fx.foodAmount}`,
   )
 
   // 期间再顶到满连击就续期（连击窗口 5 秒内，所以还是满格）。
@@ -1545,11 +1541,11 @@ try {
   assert.equal(after.fx.expAmount, expOf('tool_result', after.pre.pet, 1, false, toolTokensOf(4000)))
   assert.equal(after.post.bubble.kind, 'favorite', '吃到最爱应当夸一句')
 
-  // 再连着吃到第 9 口，这次隔够了限流窗口 → 抱怨一句「换个口味」。
+  // 连着吃同种不再触发「腻了」惩罚（boredomAfter 提到 15），但换口味有奖励。
   for (let i = 0; i < 5; i += 1) eatOne(toolEvent(4000))
   Date.now = () => T3 + 3000 + 15000 + 1 + 5000
   eatOne(toolEvent(4000))
-  assert.equal(eat.readState().bubble.kind, 'bored', '腻了应当抱怨一句')
+  assert.notEqual(eat.readState().bubble.kind, 'bored', '9 口同种不该腻（阈值 15）')
 
   // 关掉挑食与暴食：食物量退回纯 token 曲线，顶格也不再开 BUFF。
   storage.set(CONFIG_KEY, JSON.stringify({ pickyEnabled: false, frenzyEnabled: false }))
@@ -1649,11 +1645,11 @@ try {
   )
   assert.equal(mapped.memory.hours[workHour], 5)
 
-  // 表达技能还有另一个来源：模型写了多少字（每 2000 输出 token 算 1 点）。
+  // 表达技能还有另一个来源：模型写了多少字（每 800 输出 token 算 1 点，上限 8）。
   base.feed(assistantEvent(6000))
-  assert.equal(base.readState().skills.writing.xp, 4, '6000 输出 token → +3')
+  assert.equal(base.readState().skills.writing.xp, 8, '6000 输出 token → +7')
   base.feed(assistantEvent(30000))
-  assert.equal(base.readState().skills.writing.xp, 9, '单条最多 +5，不该被一次超长输出顶满')
+  assert.equal(base.readState().skills.writing.xp, 16, '单条最多 +8，不该被一次超长输出顶满')
   assert.deepEqual(
     base.readState().memory.files, [{ name: 'client.js', count: 1 }],
     'generation 不带文件名，不该动记忆里的文件表',
@@ -1673,11 +1669,18 @@ try {
       .children[0].props.style.width, '5%',
     '技能条应当按「这一级攒了多少」走（1/20）',
   )
-  const memoryLines = findAll(workPanel, n => n.props?.className === 'dshpet-sub')
-    .map(n => n.children.join(''))
-  assert.ok(memoryLines.some(t => t.includes('常改 client.js(1)')), '记忆段应当写常改的文件: ' + memoryLines.join(' | '))
-  assert.ok(memoryLines.some(t => t.includes('最常用 edit(1)')), '记忆段应当写最常用的工具')
-  assert.ok(memoryLines.some(t => t.includes('点干活')), '记忆段应当写常在几点干活')
+  const memLabels = findAll(workPanel, n => n.props?.className === 'dshpet-mem-label')
+    .map(n => typeof n.children === 'string' ? n.children : Array.isArray(n.children) ? n.children.join('') : '')
+  assert.ok(memLabels.some(t => t.includes('常改文件')), '记忆段应当有常改文件标签: ' + memLabels.join(' | '))
+  assert.ok(memLabels.some(t => t.includes('常用工具')), '记忆段应当有常用工具标签')
+  const memRows = findAll(workPanel, n => n.props?.className === 'dshpet-mem-row')
+  assert.ok(memRows.length > 0, '记忆段应当有文件/工具行')
+  const fileRow = memRows.find(n => {
+    var name = findNode(n, x => x.props?.className === 'dshpet-mem-name')
+    return name !== null && typeof name.children === 'string' && name.children.includes('client.js')
+  })
+  assert.ok(fileRow !== null, '记忆段应当写常改的文件 client.js')
+  assert.ok(memLabels.some(t => t.includes('活动时段')), '记忆段应当写活动时段')
 
   // 攒够就升级：把每级的门槛调小，好在一节测试里走到 Lv.2（提示能力的门槛）。
   storage.set(CONFIG_KEY, JSON.stringify({ skillXpPerLevel: 3 }))
