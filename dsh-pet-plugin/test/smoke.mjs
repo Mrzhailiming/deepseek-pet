@@ -55,8 +55,10 @@ let registered = null
 let overlay = null
 const ctx = {
   effect: (fn) => { fn() },
-  conversationEvents: {
-    register: (definition) => { registered = definition; return () => {} },
+  uiConversation: {
+    events: {
+      register: (definition) => { registered = definition; return () => {} },
+    },
   },
   slots: {
     inject: (name, callback) => { assert.equal(name, 'shell.overlay'); callback() },
@@ -68,6 +70,10 @@ const loaded = []
 
 /** localStorage 桩：真的存东西，持久化那一半才测得动。 */
 const storage = new Map()
+// 下面大部分头像断言是照着 APNG 立绘写的（data-sprite / 叠加层），先钉在立绘上；
+// 矢量画法在文件末尾单独测（那里会删掉这个键看默认值）。
+const AVATAR_STYLE_KEY = 'dsh-pet-plugin/avatar-style'
+storage.set(AVATAR_STYLE_KEY, 'sprite')
 const fakeLocalStorage = {
   getItem: key => (storage.has(key) ? storage.get(key) : null),
   setItem: (key, value) => { storage.set(key, String(value)) },
@@ -104,12 +110,35 @@ new Function('window', 'document', 'TextEncoder', 'console', source)(
 assert.equal(loaded.length, 1, 'factory 应当只注册一次')
 assert.equal(loaded[0].id, 'dsh-pet-plugin', 'id 必须等于包名')
 
-const mod = loaded[0].factory(specifier => {
+/** 每一次 require.async 的请求（立绘 chunk 只该在立绘画法下被要）。 */
+const chunkRequests = []
+
+/**
+ * 宿主模块表 require 的桩：同步那半只认 react，`async` 那半按宿主的协议拿包内
+ * chunk —— 执行 lib/<文件>，它应当用 `{ id, chunk, factory }` 注册自己，物化后
+ * 返回 exports。
+ */
+function hostRequire(specifier) {
   if (specifier === 'react') return react
   throw new Error(`产物 require 了非平台模块: ${specifier}`)
-})
+}
+hostRequire.async = async specifier => {
+  chunkRequests.push(specifier)
+  assert.match(specifier, /^\.\/client\.[A-Za-z0-9][A-Za-z0-9._-]*\.js$/, '包内 chunk 必须是 ./client.<name>.js')
+  const fileName = specifier.slice(2)
+  const registered = []
+  new Function('window', readFileSync(join(here, '..', 'lib', fileName), 'utf8'))({
+    __ModuleLoader__: { load: entry => { registered.push(entry) } },
+  })
+  assert.equal(registered.length, 1, `${fileName} 应当只注册一次`)
+  assert.equal(registered[0].id, 'dsh-pet-plugin', 'chunk 的 id 必须等于包名')
+  assert.equal(registered[0].chunk, fileName, 'chunk 字段必须等于它自己的文件名')
+  return registered[0].factory(hostRequire)
+}
 
-assert.deepEqual(mod.inject, ['slots', 'conversationEvents'])
+const mod = loaded[0].factory(hostRequire)
+
+assert.deepEqual(mod.inject, ['slots', 'uiConversation'])
 mod.apply(ctx)
 assert.ok(registered !== null, 'Definition 应当已注册')
 assert.ok(overlay !== null, 'overlay 应当已注册进 shell.overlay')
@@ -254,14 +283,13 @@ function overlayState() {
 function bootFresh() {
   let freshOverlay = null
   let freshDefinition = null
-  const freshMod = loaded[0].factory(specifier => {
-    if (specifier === 'react') return react
-    throw new Error(`产物 require 了非平台模块: ${specifier}`)
-  })
+  const freshMod = loaded[0].factory(hostRequire)
   freshMod.apply({
     effect: (fn) => { fn() },
-    conversationEvents: {
-      register: (definition) => { freshDefinition = definition; return () => {} },
+    uiConversation: {
+      events: {
+        register: (definition) => { freshDefinition = definition; return () => {} },
+      },
     },
     slots: {
       inject: (name, callback) => { callback() },
@@ -604,9 +632,12 @@ assert.doesNotMatch(snackFloat, /tok/, `手喂的飘字不该写 token: ${snackF
 assert.equal(snackFloat, '+15 🍬  +1 ⭐', '飘字文案不对: ' + snackFloat)
 
 // 库存限流：连点到空，按钮变灰，再点也喂不进去。
+// 每日任务「今日喂 N 次零食」达成时会回赠零食，所以净消耗可能少于点击次数；
+// 用 while 循环确保真正点空。
 for (let i = 1; i < SNACK_MAX; i += 1) clickSnack(overlay.component)
+while (overlayState().snacks > 0) clickSnack(overlay.component)
 const empty = overlayState()
-assert.equal(empty.snacks, 0, `连点 ${SNACK_MAX} 次应当把库存点空`)
+assert.equal(empty.snacks, 0, '连点应当把库存点空')
 assert.equal(snackButton(overlay.component).props.disabled, true, '没库存时按钮应当禁用')
 clickSnack(overlay.component) // 浏览器里 disabled 不会触发，这里直接调 onClick 验 store 侧的守卫
 const stillEmpty = overlayState()
@@ -2753,6 +2784,100 @@ try {
   storage.delete(STATE_KEY)
 } finally {
   Date.now = morphClock
+}
+
+// ---- 矢量画法（avatarStyle: svg）与画法开关 ----------------------------------
+
+{
+  /** 卡片里的头像组件节点（第一个函数类型的节点）及其渲染结果。 */
+  const avatarOf = boot => {
+    const node = findNode(cardOf(boot.component), n => typeof n.type === 'function')
+    return { node, out: node.type(node.props) }
+  }
+  const hasClass = (tree, cls) =>
+    findNode(tree, n => typeof n.props?.className === 'string' && n.props.className.split(' ').includes(cls)) !== null
+  const saveAt = level => storage.set(STATE_KEY, JSON.stringify({
+    v: 1, savedAt: Date.now(),
+    pet: { hunger: 20, exp: 0, level, mood: 80, energy: 75 },
+    totalFeeds: 1, totalTokens: 10, snacks: SNACK_MAX,
+    tokensBySource: { user_input: 10, generation: 0, tool_result: 0 },
+  }))
+
+  // 立绘不在主产物里：client.js 只有逻辑和矢量美术，素材在按需 chunk 里。
+  assert.ok(!source.includes('data:image/png;base64'), 'client.js 里不该再内联立绘')
+  assert.ok(source.includes('require.async("./client.sprites.js")'), 'client.js 应当按需拿立绘 chunk')
+
+  // 没点过开关：走配置默认值 svg，而且压根不去拿立绘 chunk。
+  storage.delete(AVATAR_STYLE_KEY)
+  saveAt(1)
+  const requestsBefore = chunkRequests.length
+  const fresh = bootFresh()
+  await new Promise(resolve => setTimeout(resolve, 0))
+  assert.equal(chunkRequests.length, requestsBefore, '矢量画法不该去拿立绘 chunk')
+  assert.equal(fresh.readState().avatarStyle, 'svg', '默认画法应当是矢量')
+  const baby = avatarOf(fresh)
+  assert.equal(baby.node.props.look, 'svg', '卡片应当把画法传给头像')
+  assert.equal(baby.out.type, 'svg', '矢量画法的头像是一张内联 SVG')
+  assert.equal(baby.out.props['data-look'], 'baby')
+  assert.match(baby.out.props['aria-label'], /幼崽/)
+  // 动画与断言认的那几个类在矢量画法上都得在。
+  for (const cls of ['dshpet-whale-body', 'dshpet-whale-tail', 'dshpet-whale-fin', 'dshpet-whale-eyes',
+    'dshpet-whale-mouth', 'dshpet-whale-blush', 'dshpet-whale-happy']) {
+    assert.ok(hasClass(baby.out, cls), `矢量头像应当有 .${cls}`)
+  }
+  assert.ok(!hasClass(baby.out, 'dshpet-whale-spout'), '幼崽还不会喷水')
+
+  // 四档体型与剪影：边长递增，喷水 / 背鳍 / 王冠按档出现。
+  const sizes = []
+  for (const [level, spout, dorsal, crown] of [[1, false, false, false], [3, true, false, false],
+    [6, true, true, false], [10, false, true, true]]) {
+    const out = baby.node.type(Object.assign({}, baby.node.props, { level }))
+    sizes.push(Number(out.props.style['--dshpet-size']))
+    assert.equal(hasClass(out, 'dshpet-whale-spout'), spout, `Lv.${level} 喷水柱`)
+    assert.equal(hasClass(out, 'dshpet-whale-dorsal'), dorsal, `Lv.${level} 背鳍`)
+    assert.equal(hasClass(out, 'dshpet-whale-crown'), crown, `Lv.${level} 王冠`)
+  }
+  assert.deepEqual(sizes, [...sizes].sort((a, b) => a - b), '四档边长应当递增')
+  assert.equal(new Set(sizes).size, 4, '四档边长应当各不相同')
+
+  // 进化形态有自己的那份几何，而不是回退成传说档。
+  const cat = baby.node.type(Object.assign({}, baby.node.props, { level: 10, form: 'cat' }))
+  assert.equal(cat.props['data-look'], 'cat', '进化形态应当画自己的长相')
+  assert.match(cat.props['aria-label'], /代码猫/)
+
+  // 状态：睡着换眼睑（没有笑眼那层），epic 加闪光，情绪长眉毛。
+  const props = baby.node.props
+  const asleep = baby.node.type(Object.assign({}, props, { tier: 'normal', asleep: true }))
+  assert.ok(!hasClass(asleep, 'dshpet-whale-happy'), '睡着时不该有笑眼')
+  assert.ok(hasClass(baby.node.type(Object.assign({}, props, { tier: 'epic' })), 'dshpet-whale-sparkle'), 'epic 应当闪光')
+  const curious = baby.node.type(Object.assign({}, props, { tier: 'normal', dim: { key: 'curiosity' } }))
+  assert.ok(hasClass(curious, 'dshpet-whale-brow'), '有情绪时应当长出眉毛')
+
+  // 开关：详情里的按钮切到立绘、写偏好键，重启后还记得。
+  const btn = findNode(fresh.component({}), n => typeof n.props?.className === 'string'
+    && n.props.className.includes('dshpet-style-btn'))
+  assert.ok(btn !== null, '鲸鱼头像应当有画法开关')
+  assert.equal(btn.props['data-style'], 'svg')
+  btn.props.onClick({ stopPropagation: () => {} })
+  assert.equal(fresh.readState().avatarStyle, 'sprite', '点一下应当切到立绘')
+  assert.equal(storage.get(AVATAR_STYLE_KEY), 'sprite', '偏好应当落到单独的键')
+  assert.equal(avatarOf(fresh).out.props.className, 'dshpet-avatar-stack', '切换后应当画立绘')
+  assert.deepEqual(chunkRequests.slice(requestsBefore), ['./client.sprites.js'], '切到立绘时应当去拿一次 chunk')
+  await new Promise(resolve => setTimeout(resolve, 0))
+  assert.equal(fresh.readState().spritesReady, true, 'chunk 到了应当通知重渲')
+  const loadedImg = findNode(avatarOf(fresh).out, n => n.props?.['data-sprite'] !== undefined)
+  assert.match(loadedImg.props.src, /^data:image\/png;base64,/, 'chunk 到了之后立绘应当有图')
+  assert.equal(bootFresh().readState().avatarStyle, 'sprite', '重启后应当记得画法')
+
+  // 偏好键认不出来就当矢量；没有偏好键时听配置的。
+  storage.set(AVATAR_STYLE_KEY, 'pixel')
+  assert.equal(bootFresh().readState().avatarStyle, 'svg', '脏偏好应当回落到矢量')
+  storage.delete(AVATAR_STYLE_KEY)
+  storage.set(CONFIG_KEY, JSON.stringify({ avatarStyle: 'sprite' }))
+  assert.equal(bootFresh().readState().avatarStyle, 'sprite', '配置的默认值应当生效')
+  storage.delete(CONFIG_KEY)
+  storage.delete(STATE_KEY)
+  storage.set(AVATAR_STYLE_KEY, 'sprite')
 }
 
 console.log('smoke: OK —', live.totalFeeds, '次喂食, Lv.' + live.pet.level,

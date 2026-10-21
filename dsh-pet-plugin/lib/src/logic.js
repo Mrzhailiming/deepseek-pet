@@ -226,6 +226,26 @@
     }
 
     /**
+     * 浅拷贝一份宠物状态，可选地覆盖部分字段。
+     * @param pet - 原始宠物状态。
+     * @param overrides - 要覆盖的字段。
+     * @returns 新宠物对象。
+     */
+    function clonePet(pet, overrides) {
+      var next = {
+        name: pet.name, species: pet.species, avatar: pet.avatar, icon: pet.icon,
+        mood: pet.mood, hunger: pet.hunger, energy: pet.energy,
+        curiosity: pet.curiosity, pride: pet.pride, concern: pet.concern,
+        exp: pet.exp, level: pet.level, form: pet.form
+      };
+      if (overrides !== undefined) {
+        var keys = Object.keys(overrides);
+        for (var i = 0; i < keys.length; i += 1) next[keys[i]] = overrides[keys[i]];
+      }
+      return next;
+    }
+
+    /**
      * 喂一次食：hunger 下降、exp 累积、够了就升级，顺带动一下心情 / 精力。
      * 返回新对象（React 靠引用变化重渲染）。
      * @param pet - 当前宠物状态。
@@ -238,23 +258,12 @@
     function feedPet(pet, food, exp, moodDelta, energyDelta) {
       var moodUp = typeof moodDelta === "number" ? moodDelta : 0;
       var energyUp = typeof energyDelta === "number" ? energyDelta : 0;
-      var next = {
-        name: pet.name,
-        species: pet.species,
-        avatar: pet.avatar,
-        icon: pet.icon,
+      var next = clonePet(pet, {
         mood: clamp(pet.mood + moodUp, 0, 100),
         hunger: Math.max(0, pet.hunger - food),
         energy: clamp(pet.energy + energyUp, 0, 100),
-        // 三维原样带过来：这个函数是整只 pet 逐字段重建的，漏一个就静默清零。
-        curiosity: pet.curiosity,
-        pride: pet.pride,
-        concern: pet.concern,
-        exp: pet.exp + exp,
-        level: pet.level,
-        // 同上：形态不带过来的话，进化过的宠物会在下一口饭上变回鲸鱼。
-        form: pet.form
-      };
+        exp: pet.exp + exp
+      });
       while (next.exp >= next.level * EXP_PER_LEVEL) {
         next.exp -= next.level * EXP_PER_LEVEL;
         next.level += 1;
@@ -657,58 +666,69 @@
      * @param config - 生效配置（零食格数的上限与兜底值要用它）。
      * @returns 清洗后的存档，或 null。
      */
-    function sanitizeSaved(parsed, config) {
-      if (parsed === null || typeof parsed !== "object") return null;
-      if (parsed.v !== 1 && parsed.v !== 2) return null;
-      var pet = parsed.pet;
-      if (pet === null || typeof pet !== "object") return null;
-      var bySource = parsed.tokensBySource;
-      if (bySource === null || typeof bySource !== "object") bySource = {};
+
+    /**
+     * 洗一份宠物数值字段（hunger / mood / energy / 三维 / level / exp / form）。
+     * sanitizeSaved 和 sanitizePetRecord 共用。
+     * @param pet - 原始的 pet 子对象。
+     * @returns 清洗后的 pet 字段对象。
+     */
+    function sanitizePetFields(pet) {
       var level = numberIn(pet.level, 1, 9999, 1);
-      var today = dayIndexOf(Date.now());
       return {
-        savedAt: numberIn(parsed.savedAt, 0, Number.MAX_SAFE_INTEGER, 0),
-        pet: {
-          hunger: numberIn(pet.hunger, 0, 100, 60),
-          mood: numberIn(pet.mood, 0, 100, 80),
-          energy: numberIn(pet.energy, 0, 100, 75),
-          // 情绪三维：老存档没有这几个字段，兜底 0 = 没情绪，和新养的一样。
-          curiosity: numberIn(pet.curiosity, 0, 100, 0),
-          pride: numberIn(pet.pride, 0, 100, 0),
-          concern: numberIn(pet.concern, 0, 100, 0),
-          level: level,
-          // exp 最多留一级的量：存档里的天文数字不该让 feedPet 的升级循环空转。
-          exp: numberIn(pet.exp, 0, level * EXP_PER_LEVEL, 0),
-          // 进化形态过白名单（和 sanitizeIds 同一路数）：存档里塞个不认识的
-          // 形态名 / 数字 / null，就当它没进化 —— 长相表查不到会渲染成空白。
-          form: formOf(pet.form) === null ? "" : pet.form
-        },
-        totalFeeds: numberIn(parsed.totalFeeds, 0, 1e9, 0),
-        totalTokens: numberIn(parsed.totalTokens, 0, 1e12, 0),
-        // 兜底给满格：0.1.0 的存档没有这个字段，升级上来直接能喂，
-        // 不用为「加了个字段」而让所有人从 Lv.1 重来。
-        snacks: numberIn(parsed.snacks, 0, config.manualSnackMax, config.manualSnackMax),
+        hunger: numberIn(pet.hunger, 0, 100, 60),
+        mood: numberIn(pet.mood, 0, 100, 80),
+        energy: numberIn(pet.energy, 0, 100, 75),
+        curiosity: numberIn(pet.curiosity, 0, 100, 0),
+        pride: numberIn(pet.pride, 0, 100, 0),
+        concern: numberIn(pet.concern, 0, 100, 0),
+        level: level,
+        exp: numberIn(pet.exp, 0, level * EXP_PER_LEVEL, 0),
+        form: formOf(pet.form) === null ? "" : pet.form
+      };
+    }
+
+    /**
+     * 洗一份非宠物的通用进度字段。sanitizeSaved 和 sanitizePetRecord 共用。
+     * @param raw - 原始对象。
+     * @param config - 生效配置。
+     * @param today - 日序号。
+     * @returns 通用字段对象。
+     */
+    function sanitizeProgressFields(raw, config, today) {
+      var bySource = raw.tokensBySource;
+      if (bySource === null || typeof bySource !== "object") bySource = {};
+      return {
+        totalFeeds: numberIn(raw.totalFeeds, 0, 1e9, 0),
+        totalTokens: numberIn(raw.totalTokens, 0, 1e12, 0),
         tokensBySource: {
           user_input: numberIn(bySource.user_input, 0, 1e12, 0),
           generation: numberIn(bySource.generation, 0, 1e12, 0),
           tool_result: numberIn(bySource.tool_result, 0, 1e12, 0)
         },
-        // 下面这些都是 0.2.0 加的字段。和 snacks 当年一样，**不动版本号**：
-        // 缺字段的老存档走各自的兜底（空列表 / 0 / 不位移），等级和累计一个不丢。
-        achievements: sanitizeIds(parsed.achievements, ACHIEVEMENT_BY_ID),
-        daily: sanitizeDaily(parsed.daily, today),
-        // 上一次「有喂食」的那一天，以及到那天为止连了几天。
-        streakDay: numberIn(parsed.streakDay, 0, 1e9, 0),
-        streakCount: numberIn(parsed.streakCount, 0, 1e6, 0),
-        pats: numberIn(parsed.pats, 0, 1e9, 0),
-        pos: sanitizePos(parsed.pos),
-        // 最后一次被喂 / 被摸的时刻：睡眠状态是从它算出来的，所以要存。
-        lastFeedAt: numberIn(parsed.lastFeedAt, 0, Number.MAX_SAFE_INTEGER, 0),
-        // 0.3.0 新增的两份长期积累。仍然**不动版本号**，理由同上：
-        // 老存档缺这两个字段就从空技能 / 空记忆开始养，别的进度一个不丢。
-        skills: sanitizeSkills(parsed.skills, config),
-        memory: sanitizeMemory(parsed.memory, config, today)
+        snacks: numberIn(raw.snacks, 0, config.manualSnackMax, config.manualSnackMax),
+        achievements: sanitizeIds(raw.achievements, ACHIEVEMENT_BY_ID),
+        daily: sanitizeDaily(raw.daily, today),
+        streakDay: numberIn(raw.streakDay, 0, 1e9, 0),
+        streakCount: numberIn(raw.streakCount, 0, 1e6, 0),
+        pats: numberIn(raw.pats, 0, 1e9, 0),
+        pos: sanitizePos(raw.pos),
+        lastFeedAt: numberIn(raw.lastFeedAt, 0, Number.MAX_SAFE_INTEGER, 0),
+        skills: sanitizeSkills(raw.skills, config),
+        memory: sanitizeMemory(raw.memory, config, today)
       };
+    }
+
+    function sanitizeSaved(parsed, config) {
+      if (parsed === null || typeof parsed !== "object") return null;
+      if (parsed.v !== 1 && parsed.v !== 2) return null;
+      var pet = parsed.pet;
+      if (pet === null || typeof pet !== "object") return null;
+      var today = dayIndexOf(Date.now());
+      var result = sanitizeProgressFields(parsed, config, today);
+      result.savedAt = numberIn(parsed.savedAt, 0, Number.MAX_SAFE_INTEGER, 0);
+      result.pet = sanitizePetFields(pet);
+      return result;
     }
 
     /**
@@ -887,48 +907,18 @@
       if (raw === null || typeof raw !== "object") return null;
       var pet = raw.pet;
       if (pet === null || typeof pet !== "object") return null;
-      var level = numberIn(pet.level, 1, 9999, 1);
       var today = dayIndexOf(Date.now());
-      var bySource = raw.tokensBySource;
-      if (bySource === null || typeof bySource !== "object") bySource = {};
-      return {
-        id: typeof raw.id === "string" ? raw.id : generatePetId(),
-        species: typeof raw.species === "string" && PET_SPECIES[raw.species] ? raw.species : "whale",
-        name: typeof raw.name === "string" && raw.name.length > 0 ? raw.name.slice(0, 20) : "大肥鱼",
-        avatar: typeof raw.avatar === "string" ? raw.avatar : "whale",
-        icon: typeof raw.icon === "string" ? raw.icon : "🐳",
-        bornAt: numberIn(raw.bornAt, 0, Number.MAX_SAFE_INTEGER, Date.now()),
-        pet: {
-          hunger: numberIn(pet.hunger, 0, 100, 60),
-          mood: numberIn(pet.mood, 0, 100, 80),
-          energy: numberIn(pet.energy, 0, 100, 75),
-          curiosity: numberIn(pet.curiosity, 0, 100, 0),
-          pride: numberIn(pet.pride, 0, 100, 0),
-          concern: numberIn(pet.concern, 0, 100, 0),
-          level: level,
-          exp: numberIn(pet.exp, 0, level * EXP_PER_LEVEL, 0),
-          form: formOf(pet.form) === null ? "" : pet.form
-        },
-        totalFeeds: numberIn(raw.totalFeeds, 0, 1e9, 0),
-        totalTokens: numberIn(raw.totalTokens, 0, 1e12, 0),
-        tokensBySource: {
-          user_input: numberIn(bySource.user_input, 0, 1e12, 0),
-          generation: numberIn(bySource.generation, 0, 1e12, 0),
-          tool_result: numberIn(bySource.tool_result, 0, 1e12, 0)
-        },
-        snacks: numberIn(raw.snacks, 0, config.manualSnackMax, config.manualSnackMax),
-        achievements: sanitizeIds(raw.achievements, ACHIEVEMENT_BY_ID),
-        daily: sanitizeDaily(raw.daily, today),
-        streakDay: numberIn(raw.streakDay, 0, 1e9, 0),
-        streakCount: numberIn(raw.streakCount, 0, 1e6, 0),
-        pats: numberIn(raw.pats, 0, 1e9, 0),
-        pos: sanitizePos(raw.pos),
-        lastFeedAt: numberIn(raw.lastFeedAt, 0, Number.MAX_SAFE_INTEGER, 0),
-        skills: sanitizeSkills(raw.skills, config),
-        memory: sanitizeMemory(raw.memory, config, today),
-        prestige: numberIn(raw.prestige, 0, 1000, 0),
-        formsOwned: sanitizeIds(raw.formsOwned, FORM_BY_KEY)
-      };
+      var result = sanitizeProgressFields(raw, config, today);
+      result.id = typeof raw.id === "string" ? raw.id : generatePetId();
+      result.species = typeof raw.species === "string" && PET_SPECIES[raw.species] ? raw.species : "whale";
+      result.name = typeof raw.name === "string" && raw.name.length > 0 ? raw.name.slice(0, 20) : "大肥鱼";
+      result.avatar = typeof raw.avatar === "string" ? raw.avatar : "whale";
+      result.icon = typeof raw.icon === "string" ? raw.icon : "🐳";
+      result.bornAt = numberIn(raw.bornAt, 0, Number.MAX_SAFE_INTEGER, Date.now());
+      result.pet = sanitizePetFields(pet);
+      result.prestige = numberIn(raw.prestige, 0, 1000, 0);
+      result.formsOwned = sanitizeIds(raw.formsOwned, FORM_BY_KEY);
+      return result;
     }
 
     function freshGlobalStats() {

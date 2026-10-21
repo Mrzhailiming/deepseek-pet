@@ -2,7 +2,7 @@
  * 打包分发脚本：校验清单与产物格式 → 跑冒烟测试 → pnpm/npm pack 出 tarball
  * → 解开 tarball 逐项复核里面装的到底是什么。
  *
- * 素材管线（素材 PNG → APNG 合成 → base64 内联进 client.js）由本脚本自动触发，
+ * 素材管线（素材 PNG → APNG 合成 → 打成按需 chunk lib/client.sprites.js）由本脚本自动触发，
  * 只要包里有 assets/deepseek/build-apng.cjs 就会在校验前先重建资源；
  * 想跳过重建用 --no-assets，--check 模式默认跳过（只读校验当前产物）。
  *
@@ -52,7 +52,7 @@ const PLATFORM_MODULES = new Set([
 ])
 
 /** 必须出现在 tarball 里的文件（相对包根）。 */
-const REQUIRED_IN_TARBALL = ['package.json', 'index.js', 'lib/client.js', 'cordis.patch.yml']
+const REQUIRED_IN_TARBALL = ['package.json', 'index.js', 'lib/client.js', 'lib/client.sprites.js', 'cordis.patch.yml']
 
 /** 绝不该被打进 tarball 的路径前缀（开发件）。 */
 const FORBIDDEN_PREFIXES = ['test/', 'scripts/', 'node_modules/', 'dist/']
@@ -142,7 +142,7 @@ expect(typeof exportsField['.'] === 'string' || exportsField['.']?.default !== u
 
 // files：npm 自动带上 package.json / README，其余必须显式列出且真的存在。
 const files = Array.isArray(pkg.files) ? pkg.files : []
-for (const needed of ['index.js', 'lib/client.js', 'cordis.patch.yml']) {
+for (const needed of ['index.js', 'lib/client.js', 'lib/client.sprites.js', 'cordis.patch.yml']) {
   expect(files.includes(needed), `package.json files 里缺 ${needed} —— 它不会被打进 tarball`)
   expect(existsSync(resolve(root, needed)), `文件不存在: ${needed}`)
 }
@@ -166,20 +166,19 @@ if (typeof patch === 'string' && existsSync(resolve(root, patch))) {
 }
 
 // ------------------------------------------------- 2.5 素材管线 + 拼接
-// 管线：素材 PNG → APNG 合成 → base64 写入 lib/src/sprites.js → 拼接 lib/client.js。
+// 管线：素材 PNG → APNG 合成 → lib/build.mjs（拼接 lib/client.js + 打立绘 chunk lib/client.sprites.js）。
 // 必须赶在第 3 步（client 产物校验）之前跑，否则校验/冒烟/复核的都是旧素材。
 // 包内没有 build-apng.cjs 就跳过素材重建（本步骤是 dsh-pet-plugin 专属）；
 // 但只要有 lib/build.mjs，拼接那一步总会跑（源文件 → 产物）。
 const assetBuilder = join(root, 'assets', 'deepseek', 'build-apng.cjs')
-const assetIntegrator = join(root, 'scripts', 'integrate-apng.mjs')
 const clientBuilder = join(root, 'lib', 'build.mjs')
-const hasAssetPipeline = existsSync(assetBuilder) && existsSync(assetIntegrator)
+const hasAssetPipeline = existsSync(assetBuilder)
 const hasClientBuilder = existsSync(clientBuilder)
 const skipAssets = args.includes('--no-assets')
 if (hasAssetPipeline && !checkOnly && !skipAssets) {
-  console.log('\n[assets] 素材管线：合成 APNG → 内联 sprites.js → 拼接 client.js')
-  const steps = [['合成 APNG', assetBuilder], ['内联 sprites.js', assetIntegrator]]
-  if (hasClientBuilder) steps.push(['拼接 client.js', clientBuilder])
+  console.log('\n[assets] 素材管线：合成 APNG → 拼接 client.js + 打立绘 chunk')
+  const steps = [['合成 APNG', assetBuilder]]
+  if (hasClientBuilder) steps.push(['拼接 client.js + 立绘 chunk', clientBuilder])
   for (const [label, script] of steps) {
     const run = spawnSync(process.execPath, [script], { cwd: root, encoding: 'utf8' })
     if (run.status !== 0) {
@@ -190,7 +189,7 @@ if (hasAssetPipeline && !checkOnly && !skipAssets) {
     for (const line of tail) if (line.trim()) console.log(`  · ${line.trim()}`)
   }
 } else if (!checkOnly && hasClientBuilder && !skipAssets) {
-  console.log('\n[build] 拼接 lib/src/ → lib/client.js')
+  console.log('\n[build] 拼接 lib/src/ → lib/client.js + lib/client.sprites.js')
   const run = spawnSync(process.execPath, [clientBuilder], { cwd: root, encoding: 'utf8' })
   if (run.status !== 0) {
     fail(`拼接失败:\n${run.stdout}${run.stderr}`)

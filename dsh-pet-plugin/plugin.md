@@ -8,7 +8,12 @@
 deepseek-pet/
 ├── dsh-pet-plugin/                  插件包本体（这一整个目录就是分发单位）
 │   ├── index.js                     host 半：空实现，只为成为一条活着的 Loader entry
-│   ├── lib/client.js                浏览器半：手写产物，宠物 / Combo / 特效 / 鲸鱼 SVG 都在这里
+│   ├── lib/src/                     浏览器半的源码片段：逻辑（config / constants / logic / store / views …）
+│   │                                与矢量美术（art.js：鲸鱼娘与四种进化形态的几何、配色）分开放
+│   ├── lib/build.mjs                拼接 lib/src/ → lib/client.js，并把立绘打成 lib/client.sprites.js
+│   ├── lib/client.js                产物：逻辑 + 矢量美术（约 360 KB，别手改）
+│   ├── lib/client.sprites.js        产物：28 帧 APNG 立绘的按需 chunk（约 3.4 MB，切到立绘画法才加载）
+│   ├── assets/deepseek/apng/        立绘素材原件（build.mjs 从这里读）
 │   ├── cordis.patch.yml             配置层：往 profile 里插一行 Loader 记录
 │   ├── scripts/pack.mjs             打包 + 校验（零依赖）
 │   ├── test/smoke.mjs               零依赖冒烟测试
@@ -17,7 +22,7 @@ deepseek-pet/
 └── docs/                            README 用的效果图 / 录屏
 ```
 
-`lib/client.js` 是唯一有逻辑的文件（约 3900 行，含 `//#region` 分区：配置 / 样式 / 计算 / store / 视图 / 插件体）。
+`lib/client.js` 是唯一有逻辑的产物（约 3900 行，含 `//#region` 分区：配置 / 样式 / 计算 / store / 视图 / 插件体）。
 
 ---
 
@@ -582,6 +587,8 @@ localStorage.removeItem('dsh-pet-plugin/state')
 默认宠物是 DeepSeek 的鲸鱼（`深深 / 深海小鲸`），**一整只都是内联 SVG**，画在 `lib/client.js` 的 `WhaleAvatar` 里（viewBox 恒为 `0 0 64 64`，展示边长按等级形态从 34 长到 64）。不用外链图片：插件产物是单文件 JS 塞不了资源，而 SVG 还能跟着 Combo 换表情、跟着等级换形态。
 
 几何**不写在组件里**，而是摊成数据放在常量区：鲸鱼自己那一份是 `WHALE_ART`，四种进化形态各一份在 `FORMS[i].art`（同一套 schema：`tail` / `limb` / `ear` / `body[]` / `over[]` / `extra[]` / `eye` / `lid` / `mouth` / `blush` / `face`）。`WhaleAvatar` 是**吃这份数据的通用渲染器** —— `lookOf(pet)` 先算出「此刻该长成什么样」，组件再按固定层序把零件摊成节点。五种长相因此共用同一个组件、同一套动画类名、同一套表情优先级（多加一个组件会把「第一个函数类型的节点就是头像」那套定位带偏，见 `renderPanel` 的注释）。
+
+**两种画法，一个开关**：`WhaleAvatar` 按 `props.look` 分派 —— `"svg"` 走上面这套矢量渲染器（`svgAvatar`，四档是 Q 版鲸鱼娘，发色吃形态的皮肤渐变；进化形态画各自的 `FORMS[i].art`），其余走 APNG 立绘（`spriteAvatar`，28 帧精灵，进化形态回退成传说档立绘）。立绘不在 `client.js` 里：宿主只按 `/plugins/<包名>/client.<name>.js?rev=<rev>` 发同目录的包内 chunk、不发图片文件，所以 `lib/build.mjs` 把 `assets/deepseek/apng/*.apng` 打成 `lib/client.sprites.js`，切到立绘画法时由 `require.async("./client.sprites.js")` 拿（store 里的 `loadSprites`）；矢量画法从头到尾不碰它。拿不到（宿主没有 `require.async` / 网络失败）就在这次会话里退回矢量，偏好键不动。默认值是配置项 `avatarStyle`（默认 `"svg"`）；卡片详情里的「🎨」按钮切换并写进单独的 `dsh-pet-plugin/avatar-style` 键，那份优先于配置，清存档也不会清掉它。矢量画法在卡片里按 `--dshpet-size` ×3 显示（幼崽 102px → 传说 192px），摸头时由 `.dshpet-patted` 把圆眼换成「^ ^」笑眼。改长相表后可以跑 `node lib/build.mjs && node scripts/preview-avatar.mjs` 出一张「形态 × 状态」预览页。
 
 | 部件 | 做法 |
 | --- | --- |

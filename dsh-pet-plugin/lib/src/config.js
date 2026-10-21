@@ -227,6 +227,11 @@
       // 一个小动作演多久
       idleActMs: 1400,
 
+      // 鲸鱼头像的画法："svg" = 矢量 Q 版（部件各自动画、跟着情绪换表情），
+      // "sprite" = APNG 立绘。卡片详情里的按钮会切换并另存一份（AVATAR_STYLE_KEY），
+      // 那份优先于这里 —— 这里只是没点过按钮时的默认值。
+      avatarStyle: "svg",
+
       // pet.effects.*
       effectsEnabled: true,
       effectTtlMs: 2200,
@@ -262,6 +267,15 @@
      * 清进度不该顺手把调参也清掉。
      */
     var STATE_KEY = "dsh-pet-plugin/state";
+
+    /**
+     * 头像画法的偏好键。单独一个键而不是进存档：这是「怎么看」而不是「养成什么样」，
+     * 清进度不该把它也清掉，多宠物之间也共用这一份。
+     */
+    var AVATAR_STYLE_KEY = "dsh-pet-plugin/avatar-style";
+
+    /** 头像画法 → 按钮上的名字。不在表里的值一律当 svg。 */
+    var AVATAR_STYLES = { svg: "矢量", sprite: "立绘" };
 
     /** 存档格式版本。对不上就当没存过——宁可从头养，也不读半懂的旧档。 */
     var STATE_VERSION = 2;

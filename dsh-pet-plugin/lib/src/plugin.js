@@ -2,7 +2,7 @@
     //#region 插件体
 
     /** 需要的浏览器服务：slot 系统 + Conversation Definition 注册表。 */
-    var inject = ["slots", "conversationEvents"];
+    var inject = ["slots", "uiConversation"];
 
     /**
      * 浏览器插件体。
@@ -58,7 +58,7 @@
       };
 
       ctx.effect(
-        function () { return ctx.conversationEvents.register(petFeedDefinition); },
+        function () { return ctx.uiConversation.events.register(petFeedDefinition); },
         "dsh-pet-plugin: feed observer"
       );
 

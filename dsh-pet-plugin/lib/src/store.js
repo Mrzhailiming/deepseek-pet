@@ -39,6 +39,34 @@
     }
 
     /**
+     * 立绘表：文件名 → data URI。28 帧 APNG 不在 client.js 里，而是同级 chunk
+     * client.sprites.js（由 lib/build.mjs 从 assets/deepseek/apng/ 生成）；只有切到
+     * 立绘画法才去拿。拿到之前是空表，spriteAvatar 画出来的是没有 src 的空 img。
+     */
+    var SPRITES = {};
+
+    /** 正在进行 / 已完成的那一次 chunk 加载；失败后清回 null，下次再切过来会重试。 */
+    var spritesLoad = null;
+
+    /**
+     * 拿立绘 chunk（整个插件只拿一次，多个 store 共用）。
+     *
+     * 走宿主模块表的 `require.async("./client.<name>.js")`：宿主不发图片文件，只发
+     * 同目录下 `client.<name>.js` 形式的包内 chunk（URL 由宿主带上 rev 拼出来）。
+     * @returns 加载完成时 resolve 的 Promise。
+     */
+    function loadSprites() {
+      if (spritesLoad !== null) return spritesLoad;
+      spritesLoad = typeof require === "function" && typeof require.async === "function"
+        ? Promise.resolve(require.async("./client.sprites.js")).then(function (mod) {
+          SPRITES = mod.SPRITES;
+        })
+        : Promise.reject(new Error("宿主的 require 没有 async，加载不了包内 chunk"));
+      spritesLoad.catch(function () { spritesLoad = null; });
+      return spritesLoad;
+    }
+
+    /**
      * 宠物 + 特效的可观察状态源。整个插件一份，Definition 写、overlay 组件读。
      * @param config - 生效配置。
      * @returns 状态源句柄。
@@ -110,6 +138,16 @@
       var eggs = v2.eggs;
       var globalStats = v2.global;
 
+      // 头像画法：按钮点过就以那份为准，否则用配置的默认值；认不出的值当 svg。
+      var avatarStyle = config.avatarStyle;
+      try {
+        var savedStyle = window.localStorage.getItem(AVATAR_STYLE_KEY);
+        if (savedStyle !== null) avatarStyle = savedStyle;
+      } catch (error) {
+        // storage 不可用：用配置的默认值。
+      }
+      if (!Object.prototype.hasOwnProperty.call(AVATAR_STYLES, avatarStyle)) avatarStyle = "svg";
+
       var activeRecord = collection[activePetId];
       var bootAt = Date.now();
 
@@ -158,11 +196,31 @@
           cardDataUrl: null,
           talent: (PET_SPECIES[rec.species] && PET_SPECIES[rec.species].talent) || "",
           prestige: rec.prestige || 0,
-          formsOwned: Array.isArray(rec.formsOwned) ? rec.formsOwned.slice() : []
+          formsOwned: Array.isArray(rec.formsOwned) ? rec.formsOwned.slice() : [],
+          // 换宠物时 state 整份重建，画法得跟着带过去。
+          avatarStyle: avatarStyle,
+          spritesReady: spritesLoad !== null && Object.keys(SPRITES).length > 0
         };
       }
 
       var state = stateFromRecord(activeRecord);
+
+      /**
+       * 当前是立绘画法就去拿 chunk，到了重渲一次。拿不到（宿主太旧 / 网络）就在
+       * 这一次会话里退回矢量 —— 偏好键不动，下次打开还会再试。
+       */
+      function ensureSprites() {
+        if (avatarStyle !== "sprite") return;
+        loadSprites().then(function () {
+          if (!state.spritesReady) commit({ spritesReady: true }, true);
+        }, function (error) {
+          console.warn("[dsh-pet-plugin] 立绘加载失败，这次先用矢量画法", error);
+          if (avatarStyle !== "sprite") return;
+          avatarStyle = "svg";
+          commit({ avatarStyle: avatarStyle }, true);
+        });
+      }
+      ensureSprites();
 
       function extractRecordFromState() {
         var pet = state.pet;
@@ -352,7 +410,7 @@
         }
         if (hunger === pet.hunger && mood === pet.mood && energy === pet.energy
           && dims === null) return pet;
-        var next = Object.assign({}, pet, { hunger: hunger, mood: mood, energy: energy });
+        var next = clonePet(pet, { hunger: hunger, mood: mood, energy: energy });
         return dims === null ? next : Object.assign(next, dims);
       }
 
@@ -496,7 +554,7 @@
         if (value === before) return;
         var one = {};
         one[key] = value;
-        patch.pet = Object.assign({}, pet, one);
+        patch.pet = clonePet(pet, one);
         if (before >= config.moodDimAt || value < config.moodDimAt) return;
         for (var i = 0; i < MOOD_DIMS.length; i += 1) {
           if (MOOD_DIMS[i].key === key) say(patch, MOOD_DIMS[i].line, false);
@@ -807,7 +865,7 @@
         var skills = patch.skills === undefined ? state.skills : patch.skills;
         var form = evolveTargetOf(pet, skills, config);
         if (form === null) return null;
-        patch.pet = Object.assign({}, pet, { form: form.key });
+        patch.pet = clonePet(pet, { form: form.key });
         var owned = patch.formsOwned === undefined ? state.formsOwned : patch.formsOwned;
         if (!Array.isArray(owned)) owned = [];
         if (owned.indexOf(form.key) < 0) {
@@ -1873,6 +1931,17 @@
           persist.schedule();
           listeners.forEach(function (listener) { listener(); });
         },
+        /** 矢量 ⇄ 立绘。偏好单独落一个键，不走存档的合并写。 */
+        toggleAvatarStyle: function () {
+          avatarStyle = avatarStyle === "svg" ? "sprite" : "svg";
+          try {
+            window.localStorage.setItem(AVATAR_STYLE_KEY, avatarStyle);
+          } catch (error) {
+            // 写不进去也照样切，只是下次打开回到默认值。
+          }
+          commit({ avatarStyle: avatarStyle }, true);
+          ensureSprites();
+        },
         toggleFavorite: function () {
           var idx = favorites.indexOf(activePetId);
           if (idx >= 0) favorites.splice(idx, 1);
@@ -2044,12 +2113,11 @@
           var pet = state.pet;
           if (pet.level < config.prestigeMinLevel) return false;
           var newPrestige = (state.prestige || 0) + 1;
-          var resetPet = {
-            name: pet.name, species: pet.species, avatar: pet.avatar, icon: pet.icon,
+          var resetPet = clonePet(pet, {
             mood: 80, hunger: 60, energy: 75,
             curiosity: 0, pride: 0, concern: 0,
             exp: 0, level: 1, form: ""
-          };
+          });
           var resetSkills = {};
           SKILLS.forEach(function (item) {
             var old = state.skills[item.key];
@@ -2074,7 +2142,7 @@
         switchForm: function (formKey) {
           if (!Array.isArray(state.formsOwned) || state.formsOwned.indexOf(formKey) < 0) return false;
           if (formOf(formKey) === null) return false;
-          commit({ pet: Object.assign({}, state.pet, { form: formKey }) });
+          commit({ pet: clonePet(state.pet, { form: formKey }) });
           return true;
         },
 
@@ -2082,7 +2150,7 @@
         gm: {
           setLevel: function (n) {
             var lv = Math.max(1, Math.floor(n));
-            var pet = Object.assign({}, state.pet, { level: lv, exp: 0 });
+            var pet = clonePet(state.pet, { level: lv, exp: 0 });
             activeRecord.pet = { hunger: pet.hunger, exp: 0, level: lv, mood: pet.mood, energy: pet.energy, curiosity: pet.curiosity, pride: pet.pride, concern: pet.concern, form: pet.form };
             commit({ pet: pet });
           },
@@ -2094,15 +2162,15 @@
           },
           setHunger: function (n) {
             var v = clamp(Math.floor(n), 0, 100);
-            commit({ pet: Object.assign({}, state.pet, { hunger: v }) });
+            commit({ pet: clonePet(state.pet, { hunger: v }) });
           },
           setMood: function (n) {
             var v = clamp(Math.floor(n), 0, 100);
-            commit({ pet: Object.assign({}, state.pet, { mood: v }) });
+            commit({ pet: clonePet(state.pet, { mood: v }) });
           },
           setEnergy: function (n) {
             var v = clamp(Math.floor(n), 0, 100);
-            commit({ pet: Object.assign({}, state.pet, { energy: v }) });
+            commit({ pet: clonePet(state.pet, { energy: v }) });
           },
           fillSnacks: function () {
             commit({ snacks: config.manualSnackMax });

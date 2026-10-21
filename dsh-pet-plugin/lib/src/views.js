@@ -1,7 +1,7 @@
 
     //#region 视图
 
-    // 配色（WHALE_INK / WHALE_LINE / WHALE_GOLD*）在常量区，和 WHALE_ART 挨着：
+    // 配色（WHALE_INK / WHALE_LINE / WHALE_GOLD*）在 art.js，和 WHALE_ART 挨着：
     // 那几张长相表里的零件要自己写颜色（王冠、狐狸的白尾尖、虫背上的点）。
 
     /**
@@ -132,12 +132,180 @@
      * 卡片测试靠「第一个函数类型的节点就是头像」定位头像，多一个组件会把它们
      * 带偏（见 renderPanel 的注释）。承重的六个类名（body / tail / fin / eyes /
      * mouth / blush）因此在每种形态上都还在，动画与断言跟着一起活。
-     * @param props - { tier, hungry, asleep, sad, dim, level, form }：连击视觉
-     *   等级 + 是否饿着 + 是否睡着 + 心情是否见底 + 写在脸上的那一维（moodDimOf
-     *   的结果，可为 null）+ 宠物等级 + 进化形态（没进化是 ""）。
+     *
+     * 两套画法共用这一个组件，由 `look` 切换（见 AVATAR_STYLES）：`"svg"` 走
+     * svgAvatar，其余一律走 spriteAvatar（APNG 立绘）。两者是普通函数而不是
+     * 组件，理由同上。
+     * @param props - { tier, hungry, asleep, sad, dim, level, form, look }：连击
+     *   视觉等级 + 是否饿着 + 是否睡着 + 心情是否见底 + 写在脸上的那一维
+     *   （moodDimOf 的结果，可为 null）+ 宠物等级 + 进化形态（没进化是 ""）+
+     *   画法（缺省是立绘）。
      * @returns 头像节点。
      */
     function WhaleAvatar(props) {
+      return props.look === "svg" ? svgAvatar(props) : spriteAvatar(props);
+    }
+
+    /**
+     * 一枚单独的零件（tail / limb / dorsal / crown 这类槽位只有一件）。
+     * @param node - 零件描述 `{ t, p }`；null / undefined 时返回 null。
+     * @param className - 挂在零件上的类名（动画认它），不需要就传 undefined。
+     * @param base - 默认属性，零件自己写了同名属性就盖掉。
+     * @returns 节点，或 null。
+     */
+    function artNode(node, className, base) {
+      if (node === null || node === undefined) return null;
+      return h(node.t, Object.assign({ className: className }, base, node.p));
+    }
+
+    /**
+     * 矢量画法：把 lookOf 给出的那份几何（`look.art`）画成一张内联 SVG。
+     *
+     * 绘制序（从下往上）：喷水 → [尾 → 肢 → 背鳍 → 头顶 → 身体 → 贴片 → 专属零件
+     * → 腮红 → 眼睛 → 笑眼 → 眉毛 → 嘴 → 王冠] → 闪光，方括号里是会浮沉的那一组。
+     *
+     * 笑眼（`.dshpet-whale-happy`）是摸头那一下的「^ ^」：平时藏着，卡片挂上
+     * `.dshpet-patted` 时由 CSS 换掉圆眼。它从眼位推出来，所以每种形态都有，
+     * 不用往长相表里多写一份。
+     * @param props - 同 WhaleAvatar。
+     * @returns SVG 节点。
+     */
+    function svgAvatar(props) {
+      var excited = props.tier === "epic";
+      var asleep = props.asleep === true && !excited;
+      var starving = props.hungry === true && !excited && !asleep;
+      var sad = props.sad === true && !excited && !asleep && !starving;
+      var look = lookOf({ level: props.level, form: props.form });
+      var art = look.art;
+      var face = props.dim === undefined || props.dim === null
+        || excited || asleep || starving || sad
+        ? null
+        : art.face[props.dim.key] || null;
+      var lw = look.lineWidth;
+      var skinFill = { fill: "url(#dshpet-whale-skin)", stroke: look.line, strokeWidth: 1.1 * lw };
+      var grow = look.eyeGrow * (face === null ? 1 : face.eyeGrow);
+      var eyes = [art.eye.l, art.eye.r];
+      return h(
+        "svg",
+        {
+          className: "dshpet-whale dshpet-whale-svg",
+          viewBox: "0 0 64 64",
+          // 卡片里按 --dshpet-size 放大三倍（见 .dshpet-card .dshpet-whale-svg），
+          // 四档体型差照样看得出来；这里的边长给卡片之外（以及没加载样式时）用。
+          style: {
+            width: String(look.size) + "px",
+            height: String(look.size) + "px",
+            "--dshpet-size": String(look.size)
+          },
+          "data-look": look.key,
+          role: "img",
+          "aria-label": look.aria
+        },
+        h(
+          "defs",
+          null,
+          h(
+            "linearGradient",
+            { id: "dshpet-whale-skin", x1: "0", y1: "0", x2: "0", y2: "1" },
+            h("stop", { offset: "0", stopColor: look.skin[0] }),
+            h("stop", { offset: ".55", stopColor: look.skin[1] }),
+            h("stop", { offset: "1", stopColor: look.skin[2] })
+          ),
+          h(
+            "linearGradient",
+            { id: "dshpet-whale-belly", x1: "0", y1: "0", x2: "0", y2: "1" },
+            h("stop", { offset: "0", stopColor: "#ffffff", stopOpacity: ".95" }),
+            h("stop", { offset: "1", stopColor: "#d7e2ff", stopOpacity: ".9" })
+          )
+        ),
+        look.spout && art.spout
+          ? h("g", { className: "dshpet-whale-spout" }, artNodes(art.spout, "spout", null))
+          : null,
+        h(
+          "g",
+          { className: "dshpet-whale-body" },
+          artNode(art.tail, "dshpet-whale-tail", skinFill),
+          // 肢体比身体最深的那一档再深一点，配色差异连它一起走。
+          artNode(art.limb, "dshpet-whale-fin",
+            { fill: look.skin[2], stroke: look.line, strokeWidth: 1.1 * lw }),
+          look.dorsal ? artNode(art.dorsal, "dshpet-whale-dorsal", skinFill) : null,
+          artNodes(art.ear, "ear", skinFill),
+          artNodes(art.body, "body",
+            { fill: "url(#dshpet-whale-skin)", stroke: look.line, strokeWidth: 1.2 * lw }),
+          artNodes(art.over, "over", null),
+          artNodes(art.extra, "extra", null),
+          h("g", {
+            className: "dshpet-whale-blush",
+            opacity: starving ? .25 : face === null ? .5 : face.blush
+          }, art.blush.map(function (at, i) {
+            return h("ellipse", { key: "b" + String(i), cx: at[0], cy: at[1], rx: 3.4, ry: 2, fill: "#ff86ac" });
+          })),
+          // 睡着就换成两道下弯的眼睑（闭着的眼没什么可眨）。
+          h("g", { className: "dshpet-whale-eyes" },
+            asleep
+              ? art.lid.map(function (d, i) {
+                return h("path", {
+                  key: "lid" + String(i), d: d,
+                  fill: "none", stroke: WHALE_INK, strokeWidth: 1.5, strokeLinecap: "round"
+                });
+              })
+              : [
+                whaleEye("eL", art.eye.l[0], art.eye.l[1], excited, grow),
+                whaleEye("eR", art.eye.r[0], art.eye.r[1], excited, grow)
+              ]),
+          asleep
+            ? null
+            : h("g", { className: "dshpet-whale-happy" }, eyes.map(function (at, i) {
+              var x = at[0];
+              var y = at[1];
+              return h("path", {
+                key: "hp" + String(i),
+                d: "M" + (x - 3.6) + " " + (y + 1.2) + "Q" + x + " " + (y - 3.6) + " " + (x + 3.6) + " " + (y + 1.2),
+                fill: "none", stroke: WHALE_INK, strokeWidth: 1.6, strokeLinecap: "round"
+              });
+            })),
+          // 眉毛单独一层而不是塞进 .dshpet-whale-eyes：那层在眨，眉毛跟着眨会抽搐。
+          face === null
+            ? null
+            : h("g", { className: "dshpet-whale-brow" }, face.brow.map(function (d, i) {
+              return h("path", {
+                key: "brow" + String(i), d: d,
+                fill: "none", stroke: WHALE_INK, strokeWidth: 1.4, strokeLinecap: "round"
+              });
+            })),
+          h("path", {
+            className: "dshpet-whale-mouth",
+            d: excited ? art.mouth.excited
+              : asleep ? art.mouth.asleep
+                : starving || sad ? art.mouth.low
+                  : face !== null ? face.mouth
+                    : art.mouth.calm,
+            fill: excited || (face !== null && face.filled) ? WHALE_INK : "none",
+            stroke: WHALE_INK,
+            strokeWidth: 1.5,
+            strokeLinecap: "round",
+            strokeLinejoin: "round"
+          }),
+          look.crown ? artNode(art.crown, "dshpet-whale-crown", null) : null
+        ),
+        excited
+          ? h(
+            "g",
+            { className: "dshpet-whale-sparkle", fill: "#ffe066" },
+            h("path", { d: "M0-3.4C.4-.9 .9-.4 3.4 0 .9 .4 .4 .9 0 3.4-.4 .9-.9 .4-3.4 0-.9-.4-.4-.9 0-3.4Z", transform: "translate(6 16)" }),
+            h("path", { d: "M0-2.6C.3-.7 .7-.3 2.6 0 .7 .3 .3 .7 0 2.6-.3 .7-.7 .3-2.6 0-.7-.3-.3-.7 0-2.6Z", transform: "translate(58 12)" })
+          )
+          : null
+      );
+    }
+
+    /**
+     * 立绘画法：APNG 精灵（见 sprites.js）。底图按状态挑一张，eat / pat 两张
+     * 叠在上面，由外层类切换显示。
+     * @param props - 同 WhaleAvatar。
+     * @returns 叠加容器节点。
+     */
+    function spriteAvatar(props) {
       var excited = props.tier === "epic";
       var asleep = props.asleep === true && !excited;
       var starving = props.hungry === true && !excited && !asleep;
@@ -157,7 +325,8 @@
             : excited ? "excited"
               : "normal";
       var frame = function (s) { return SPRITES["deepseek-" + imgStage + "-" + s + ".apng"]; };
-      var base = frame(state) || SPRITES["deepseek-baby-normal.apng"] || "";
+      // chunk 还没到时 SPRITES 是空表：不给 src（空串 src 会让有的浏览器去请求当前页）。
+      var base = frame(state) || SPRITES["deepseek-baby-normal.apng"] || undefined;
       var common = {
         className: "dshpet-whale dshpet-whale-sprite",
         width: size,
@@ -1061,7 +1230,8 @@
                     sad: sad,
                     level: pet.level,
                     form: pet.form,
-                    dim: dim
+                    dim: dim,
+                    look: state.avatarStyle
                   })
                   // emoji 头像是用户自己配的字形，插件不擅自按等级换。
                   : pet.icon),
@@ -1239,7 +1409,17 @@
                     type: "button",
                     title: "生成名片",
                     onClick: function (event) { stopBubbling(event); store.generateCard(); }
-                  }, "📤 名片")
+                  }, "📤 名片"),
+                  // 头像画法开关：只有鲸鱼头像才有两套画，emoji 头像不显示。
+                  pet.avatar === "whale"
+                    ? h("button", {
+                      className: "dshpet-card-btn dshpet-style-btn",
+                      type: "button",
+                      title: "切换头像画法",
+                      "data-style": state.avatarStyle,
+                      onClick: function (event) { stopBubbling(event); store.toggleAvatarStyle(); }
+                    }, "🎨 " + AVATAR_STYLES[state.avatarStyle === "svg" ? "sprite" : "svg"])
+                    : null
                 ),
               // 零食按钮是卡片的第三格，所以折叠状态下也点得到（折叠只藏 meta）。
               config.manualFeedEnabled

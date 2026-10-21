@@ -44,7 +44,7 @@
       ".dshpet-card[data-buff=frenzy]{border-color:rgba(255,140,40,.85);",
       "box-shadow:var(--dsw-shadow-lv3,0 6px 24px rgba(0,0,0,.35)),0 0 20px rgba(255,140,40,.5),0 0 40px rgba(255,80,20,.25);",
       "animation:dshpet-frenzy-pulse 1.2s ease-in-out infinite,dshpet-frenzy-shake 160ms ease-in-out 1}",
-      ".dshpet-card[data-buff=frenzy] .dshpet-whale-sprite{transform:scale(1.08);transition:transform .4s cubic-bezier(.34,1.56,.64,1)}",
+      ".dshpet-card[data-buff=frenzy] .dshpet-whale-sprite,.dshpet-card[data-buff=frenzy] .dshpet-whale-svg{transform:scale(1.08);transition:transform .4s cubic-bezier(.34,1.56,.64,1)}",
       ".dshpet-card[data-buff=frenzy] .dshpet-whale-sprite-bob{animation:dshpet-sprite-bob 2s ease-in-out infinite}",
       /* 暴食火焰粒子：卡片后面一层伪元素喷出上浮的火星。 */
       ".dshpet-card[data-buff=frenzy]::before{content:'';position:absolute;inset:-8px;border-radius:26px;pointer-events:none;z-index:-1;",
@@ -69,6 +69,12 @@
       ".dshpet-card{padding:10px;border-radius:22px}",
       ".dshpet-card .dshpet-whale-sprite{width:192px!important;height:192px!important;border-radius:20px}",
       ".dshpet-card .dshpet-whale-sprite-bob{animation:dshpet-sprite-bob 3.2s ease-in-out infinite}",
+      /* 矢量画法在卡片里按形态边长 ×3：幼崽 102px → 传说 192px（立绘一律 192px）。 */
+      ".dshpet-card .dshpet-whale-svg{width:calc(var(--dshpet-size,64) * 3px)!important;height:calc(var(--dshpet-size,64) * 3px)!important}",
+      /* 摸头那一下换成「^ ^」笑眼（只有矢量画法有这一层）。 */
+      ".dshpet-whale-happy{display:none}",
+      ".dshpet-patted .dshpet-whale-happy{display:inline}",
+      ".dshpet-patted .dshpet-whale-svg .dshpet-whale-eyes{display:none}",
       // 精灵底座的浮动用专门的名字：和下方 SVG 部件的 dshpet-whale-bob 是两个动画，
       // 同名的话后定义的会整条覆盖先定义的（CSS keyframes 同名后者生效）。
       "@keyframes dshpet-sprite-bob{0%,100%{transform:translateY(0)}50%{transform:translateY(-4px)}}",
